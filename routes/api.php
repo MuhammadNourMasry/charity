@@ -8,6 +8,7 @@ use App\Http\Controllers\CityController;
 use App\Http\Controllers\DayController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\DonorProfileController as ControllersDonorProfileController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\TypeController;
 use Illuminate\Support\Facades\Route;
@@ -15,7 +16,6 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VolunterProfileController as ControllersVolunterProfileController;
 
 Route::prefix('auth')->group(function () {
-
     // PUBLIC ROUTES
     Route::post('/register', [UserController::class, 'register']);
 
@@ -23,14 +23,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
     Route::post('/reset-password', [UserController::class, 'resetPassword']);
     Route::post('/resend-otp', [UserController::class, 'resendOtp']);
-
     // PROTECTED ROUTES
     Route::middleware('auth:sanctum')->group(function () {
          Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
         Route::post('/select-role', [UserController::class, 'selectRole']);
         Route::put('/change-password', [UserController::class, 'changePassword']);
         Route::post('/logout', [UserController::class, 'logout']);
-
     });
 
 });
@@ -55,4 +53,10 @@ Route::prefix('auth')->group(function () {
         Route::get('/days',[DayController::class,'index']);
         Route::get('/skills', [SkillController::class, 'index']);
  });
-  });
+ // routes for dashboard
+
+ });
+ Route::post('/login', [EmployeeController::class, 'login']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [EmployeeController::class, 'logout']);
+});

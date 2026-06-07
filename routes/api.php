@@ -8,6 +8,7 @@ use App\Http\Controllers\CityController;
 use App\Http\Controllers\DayController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\DonorProfileController as ControllersDonorProfileController;
+use App\Http\Controllers\DorationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\TypeController;
@@ -53,10 +54,14 @@ Route::prefix('auth')->group(function () {
         Route::get('/days',[DayController::class,'index']);
         Route::get('/skills', [SkillController::class, 'index']);
  });
- // routes for dashboard
-
  });
- Route::post('/login', [EmployeeController::class, 'login']);
+ // routes for dashboard
+Route::post('/login', [EmployeeController::class, 'login']);
+Route::post('/dorations', [DorationController::class, 'store']);
+Route::get('/dorations', [DorationController::class, 'index']);
+Route::get('/dorations/{id}', [DorationController::class, 'show']);
+Route::delete('/dorations/{id}', [DorationController::class, 'destroy']);
+
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [EmployeeController::class, 'logout']);
+Route::post('/logout', [EmployeeController::class, 'logout']);
 });

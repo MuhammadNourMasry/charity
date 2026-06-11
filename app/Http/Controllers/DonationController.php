@@ -1,20 +1,30 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Exports\DonationExport;
 use App\Http\Requests\StoreDorationRequest;
+use App\Models\Donation;
 use App\Models\DonorProfile;
-use App\Models\Doration;
 use App\Models\User;
 use Illuminate\Http\Request;
-class DorationController extends Controller
+use Maatwebsite\Excel\Facades\Excel;
+
+class DonationController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-       public function index()
+public function export()
+{
+    Excel::store(new DonationExport, 'Donation.xlsx', 'public');
+    return response()->json([
+        'message' => 'تم حفظ الملف بنجاح في السيرفر',
+        'file_url' => asset('storage/Donation.xlsx')
+    ]);
+}
+    public function index()
     {
-        $dorations = Doration::with('donorProfile.user')->latest()->get();
+        $dorations = Donation::with('donorProfile.user')->latest()->get();
         return response()->json($dorations);
     }
 
@@ -75,7 +85,7 @@ class DorationController extends Controller
      */
     public function show($id)
     {
-       $doration = Doration::with('donorProfile.user')->find($id);
+       $doration = Donation::with('donorProfile.user')->find($id);
 
     if (!$doration) {
         return response()->json([
@@ -93,7 +103,7 @@ class DorationController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Doration $doration)
+    public function edit(Donation $doration)
     {
         //
     }
@@ -101,7 +111,7 @@ class DorationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Doration $doration)
+    public function update(Request $request, Donation $doration)
     {
         //
     }
@@ -111,7 +121,7 @@ class DorationController extends Controller
      */
      public function destroy($id)
     {
-        $doration = Doration::find($id);
+        $doration = Donation::find($id);
 
     if (!$doration) {
         return response()->json([

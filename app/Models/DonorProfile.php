@@ -18,6 +18,6 @@ class DonorProfile extends Model
     }
     public function dorations()
     {
-        return $this->hasMany(Doration::class);
+        return $this->hasMany(Donation::class);
     }
 }

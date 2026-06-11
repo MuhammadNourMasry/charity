@@ -1,9 +1,12 @@
 <?php
+
 namespace App\Http\Controllers;
+
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+
 class EmployeeController extends Controller
 {
     public function login(Request $request)
@@ -13,7 +16,7 @@ class EmployeeController extends Controller
             'password'  => 'required|string',
         ]);
         $employee = Employee::where('full_name', $request->full_name)->first();
-        if (!$employee || !Hash::check($request->password,$employee->password)) {
+        if (!$employee || !Hash::check($request->password, $employee->password)) {
             return response()->json([
                 'message' => 'بيانات خاطئة'
             ], 401);
@@ -29,11 +32,11 @@ class EmployeeController extends Controller
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return response()->json(['message' =>'تم تسجيل الخروج']);
+        return response()->json(['message' => 'تم تسجيل الخروج']);
     }
     public function index()
     {
-        //
+        
     }
 
     /**

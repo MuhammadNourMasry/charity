@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\DayController;
 use App\Http\Controllers\DomainController;
+use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DonorProfileController as ControllersDonorProfileController;
 use App\Http\Controllers\DorationController;
 use App\Http\Controllers\EmployeeController;
@@ -57,11 +58,11 @@ Route::prefix('auth')->group(function () {
  });
  // routes for dashboard
 Route::post('/login', [EmployeeController::class, 'login']);
-Route::post('/dorations', [DorationController::class, 'store']);
-Route::get('/dorations', [DorationController::class, 'index']);
-Route::get('/dorations/{id}', [DorationController::class, 'show']);
-Route::delete('/dorations/{id}', [DorationController::class, 'destroy']);
-
+Route::post('/donations', [DonationController::class, 'store']);
+Route::get('/donations', [DonationController::class, 'index']);
+Route::get('/donations/{id}', [DonationController::class, 'show']);
+Route::delete('/donations/{id}', [DonationController::class, 'destroy']);
+Route::get('/users/export', [DonationController::class, 'export']);
 Route::middleware('auth:sanctum')->group(function () {
 Route::post('/logout', [EmployeeController::class, 'logout']);
 });

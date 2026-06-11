@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-class Doration extends Model
+class Donation extends Model
 {
 protected $fillable = [
         'donor_profile_id',

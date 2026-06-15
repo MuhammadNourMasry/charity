@@ -9,7 +9,6 @@ use App\Http\Controllers\DayController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DonorProfileController as ControllersDonorProfileController;
-use App\Http\Controllers\DorationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\TypeController;
@@ -62,7 +61,7 @@ Route::post('/donations', [DonationController::class, 'store']);
 Route::get('/donations', [DonationController::class, 'index']);
 Route::get('/donations/{id}', [DonationController::class, 'show']);
 Route::delete('/donations/{id}', [DonationController::class, 'destroy']);
-Route::get('/users/export', [DonationController::class, 'export']);
+Route::get('/users/exportDonations', [DonationController::class, 'export']);
 Route::middleware('auth:sanctum')->group(function () {
 Route::post('/logout', [EmployeeController::class, 'logout']);
 });

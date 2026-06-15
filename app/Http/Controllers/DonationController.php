@@ -2,7 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\DonationExport;
-use App\Http\Requests\StoreDorationRequest;
+use App\Http\Requests\StoreDonationRequest;
 use App\Models\Donation;
 use App\Models\DonorProfile;
 use App\Models\User;
@@ -24,8 +24,8 @@ public function export()
 }
     public function index()
     {
-        $dorations = Donation::with('donorProfile.user')->latest()->get();
-        return response()->json($dorations);
+        $donations = Donation::with('donorProfile.user')->latest()->get();
+        return response()->json($donations);
     }
 
     /**
@@ -35,7 +35,7 @@ public function export()
     {
         //
     }
-    public function store(StoreDorationRequest $request)
+    public function store(StoreDonationRequest $request)
     {
        if ($request->has('donor_email')) {
         $user = User::firstOrCreate(
@@ -66,7 +66,7 @@ public function export()
                 'bio'          => null,
             ]
         );
-        $doration = $donorProfile->dorations()->create([
+        $donation = $donorProfile->donations()->create([
             'name'   => $request->name,
             'amount' => $request->amount,
             'payment_method' => $request->payment_method,
@@ -76,7 +76,7 @@ public function export()
         ]);
         return response()->json([
             'message'  => 'تم إضافة التبرع بنجاح',
-            'doration' => $doration,
+            'donation' => $donation,
         ], 201);
     }
 
@@ -85,9 +85,9 @@ public function export()
      */
     public function show($id)
     {
-       $doration = Donation::with('donorProfile.user')->find($id);
+       $donation = Donation::with('donorProfile.user')->find($id);
 
-    if (!$doration) {
+    if (!$donation) {
         return response()->json([
             'status' => false,
             'message' => 'التبرع غير موجود'
@@ -97,13 +97,13 @@ public function export()
     return response()->json([
         'status' => true,
         'message' => 'تم ارجاع البيانات بنجاح',
-        'data' => $doration
+        'data' => $donation
     ], 200);
     }
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Donation $doration)
+    public function edit(Donation $donation)
     {
         //
     }
@@ -111,7 +111,7 @@ public function export()
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Donation $doration)
+    public function update(Request $request, Donation $donation)
     {
         //
     }
@@ -121,15 +121,15 @@ public function export()
      */
      public function destroy($id)
     {
-        $doration = Donation::find($id);
+        $donation = Donation::find($id);
 
-    if (!$doration) {
+    if (!$donation) {
         return response()->json([
             'status' => false,
             'message' => 'التبرع غير موجود'
         ], 404);
     }
-    $doration->delete();
+    $donation->delete();
     return response()->json([
         'status' => true,
         'message' => 'تم حذف التبرع بنجاح'

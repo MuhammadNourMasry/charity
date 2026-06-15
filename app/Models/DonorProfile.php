@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class DonorProfile extends Model
 {
    protected $fillable = [
+        'name',
         'user_id',
         'bio',
 
@@ -16,8 +17,8 @@ class DonorProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
-    public function dorations()
+    public function donations()
     {
-        return $this->hasMany(Donation::class);
+        return $this->hasMany(Donation::class,'donor_profile_id');
     }
 }

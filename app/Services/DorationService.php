@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Doration;
+use App\Models\Donation;
 use App\Repositories\DonorProfileRepository;
 use Illuminate\Support\Collection;
 
-class DorationService
+class DonationService
 {
     public function __construct(
         private readonly DonorProfileRepository $donorProfileRepository)
@@ -14,7 +14,7 @@ class DorationService
 
      }
 
-    public function createDoration(array $data): Doration
+    public function createDonation(array $data): Donation
     {
         $donorProfile = $this->donorProfileRepository->findOrCreateByEmail(
             email: $data['donor_email'],
@@ -25,21 +25,21 @@ class DorationService
             donorType:   $data['donor_type'] ?? null,
             isAnonymous: $data['is_anonymous'] ?? null,
         );
-        return $donorProfile->dorations()->create($this->dorationFields($data));
+        return $donorProfile->donations()->create($this->donationFields($data));
     }
-    public function getAllDorations(): Collection
+    public function getAllDonations(): Collection
     {
-        return Doration::with('donorProfile.user')->latest()->get();
+        return Donation::with('donorProfile.user')->latest()->get();
     }
-    public function getDorationById(int $id): Doration
+    public function getDonationById(int $id): Donation
     {
-        return Doration::with('donorProfile.user')->findOrFail($id);
+        return Donation::with('donorProfile.user')->findOrFail($id);
     }
-    public function deleteDoration(int $id): void
+    public function deleteDonation(int $id): void
     {
-        Doration::findOrFail($id)->delete();
+        Donation::findOrFail($id)->delete();
     }
-    private function dorationFields(array $data): array
+    private function donationFields(array $data): array
     {
         return [
             'name'   => $data['name'],

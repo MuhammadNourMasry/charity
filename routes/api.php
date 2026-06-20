@@ -79,12 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/donations/{id}', [DonationController::class, 'show']);//!جلب تفاصيل تبرع معين
          Route::get('/donations/{id}/pdf', [DonationController::class, 'downloadReceiptPdf']);//!تحميل إيصال التبرع بصيغة PDF
         
-        // ✅ PayerURL Routes (جديدة)
-     //   Route::post('/donations/payerurl', [DonationController::class, 'createPayerurlPayment']);
-     //   Route::get('/donations/{id}/qr', [DonationController::class, 'getDonationQR']);
-        
-        // ✅ Check Payment Status (بدلاً من صفحات Redirect)
-        Route::get('/payments/{donation}/status', [DonationController::class, 'checkPaymentStatus']);
+    
         
         // Recurring Donations
         Route::post('/recurring', [RecurringDonationController::class, 'subscribe']);//!انشاء تبرع متكرر
@@ -119,8 +114,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/cities', [CityController::class, 'index']);
 
 
-         Route::post('/donations/stripe', [DonationController::class, 'createStripePayment']);
-    Route::post('/donations/stripe/confirm', [DonationController::class, 'confirmStripePayment']);
+         Route::post('/donations/stripe', [DonationController::class, 'createStripePayment']);//!إنشاء عملية دفع عبر Stripe
+    Route::post('/donations/stripe/confirm', [DonationController::class, 'confirmStripePayment']);//!تأكيد عملية دفع Stripe بعد العودة من صفحة الدفع
     });
 
     // ==================== VOLUNTEER ROUTES ====================
@@ -157,11 +152,6 @@ Route::middleware('auth:sanctum')->group(function () {
 // ==================== SHARED ROUTES (Public) ====================
 Route::get('/cities', [CityController::class, 'index']);
 Route::get('/categories', [CategoryController::class, 'index']);
-
-// ==================== PAYERURL WEBHOOK (No Auth, No CSRF) ====================
-/*Route::post('/payerurl/webhook', [DonationController::class, 'handlePayerurlWebhook'])
-    ->name('payerurl.webhook')
-    ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);*/
 
 
     

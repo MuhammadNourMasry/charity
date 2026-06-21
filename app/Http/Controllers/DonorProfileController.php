@@ -16,119 +16,81 @@ class DonorProfileController extends Controller
 {
    
     public function completeProfile(RequestsDonorProfileRequest $request)
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        if (!$user->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'يرجى التحقق من بريدك الإلكتروني أولاً',
-                'code' => 'EMAIL_NOT_VERIFIED'
-            ], 403);
-        }
-
-        if ($user->role !== 'Donor') {
-            return response()->json([
-                'success' => false,
-                'message' => 'دور المستخدم ليس متبرعاً',
-                'code' => 'INVALID_ROLE'
-            ], 403);
-        }
-
-        if ($user->profile_completed) {
-            return response()->json([
-                'success' => false,
-                'message' => 'لقد قمت بإكمال ملفك الشخصي بالفعل',
-                'code' => 'PROFILE_ALREADY_COMPLETED'
-            ], 400);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // Upload ID photo
-            $idPath = $request->file('photo_id')->store('identifications', 'public');
-            
-            // Upload personal photo if provided
-            $personalPhotoPath = null;
-            if ($request->hasFile('personal_photo')) {
-                $personalPhotoPath = $request->file('personal_photo')->store('profiles', 'public');
-            }
-
-            // Create profile
-            $profile = Profile::create([
-                'user_id' => $user->id,
-                'city_id' => $request->city_id,
-                'photo_id' => $idPath,
-                'phone' => $request->phone,
-                'birth_date' => $request->birth_date,
-                'gender' => $request->gender,
-                'personal_photo' => $personalPhotoPath,
-                'bio' => $request->bio
-            ]);
-
-            // Create donor profile
-            $donorProfile = DonorProfile::create([
-                'user_id' => $user->id,
-                'donor_type' => $request->donor_type ?? 'فردي',
-                'is_anonymous' => $request->is_anonymous ?? false,
-                'total_donated' => 0,
-                'loyalty_points' => 0,
-                'bio' => $request->bio
-            ]);
-
-            // Mark profile as completed
-            $user->update([
-                'is_active' => true,
-                'profile_completed' => true
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم إكمال ملف المتبرع بنجاح',
-                'data' => [
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'role' => $user->role,
-                        'profile_completed' => true
-                    ],
-                    'profile' => [
-                        'phone' => $profile->phone,
-                        'city_id' => $profile->city_id,
-                        'city_name' => $profile->city?->name,
-                        'birth_date' => $profile->birth_date,
-                        'gender' => $profile->gender,
-                        'bio' => $profile->bio,
-                        'photo_url' => $personalPhotoPath ? asset('storage/' . $personalPhotoPath) : null
-                    ],
-                    'donor_profile' => [
-                        'donor_type' => $donorProfile->donor_type,
-                        'is_anonymous' => $donorProfile->is_anonymous,
-                        'total_donated' => 0,
-                        'loyalty_points' => 0,
-                        'loyalty_tier' => null
-                    ]
-                ]
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء الملف الشخصي',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+    if (!$user->hasVerifiedEmail()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Please verify your email first using OTP.',
+            'code'    => 'EMAIL_NOT_VERIFIED'
+        ], 403);
     }
 
-    /**
-     * Get donor profile
-     */
+    if ($user->role !== 'Donor') {
+        return response()->json([
+            'success' => false,
+            'message' => 'Your role is not Donor.',
+            'code'    => 'INVALID_ROLE'
+        ], 403);
+    }
+
+    if ($user->donor) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You already have a donor profile.',
+            'code'    => 'PROFILE_ALREADY_EXISTS'
+        ], 400);
+    }
+
+    try {
+        $validated = $request->validated();
+        $idPath = $request->file('photo_id')->store('photo_id', 'public');
+
+        $personalPhotoPath = null;
+        if ($request->hasFile('Personal_photo')) {
+            $personalPhotoPath = $request->file('Personal_photo')->store('profiles', 'public');
+        }
+        $result = DB::transaction(function () use ($user, $validated, $idPath, $personalPhotoPath) {
+            $profile = Profile::create([
+                'user_id'        => $user->id,
+                'city_id'        => $validated['city_id'],
+                'photo_id'       => $idPath,
+                'phone'          => $validated['phone'],
+                'birth_date'     => $validated['birth_date'],
+                'gender'         => $validated['gender'],
+                'Personal_photo' => $personalPhotoPath,
+            ]);
+            $donor = DonorProfile::create([
+                'user_id' => $user->id,
+                'bio'     => $validated['bio'] ?? null,
+            ]);
+            $user->update(['is_active' => true]);
+            return ['profile' => $profile, 'donor' => $donor];
+        });
+        return response()->json([
+            'code'    => 201,
+            'success' => true,
+            'message' => 'Donor profile completed successfully.',
+            'data'    => [
+                'user'            => $user->only(['id', 'name', 'email', 'role']),
+                'general_profile' => [...$result['profile']->toArray(),
+                    'city_name' => $result['profile']->city->name,
+                ],
+                'donor_details'   => $result['donor'],
+            ]
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code'    => 500,
+            'success' => false,
+            'message' => 'An error occurred while creating donor profile.',
+            'error'   => $e->getMessage()
+        ], 500);
+    }
+}
+    
     public function getProfile(Request $request)
     {
         $user = $request->user();
@@ -180,7 +142,7 @@ class DonorProfileController extends Controller
 {
     $user = $request->user();
 
-    // ✅ تحميل العلاقات قبل التحديث
+   
     $user->load(['profile', 'donor']);
 
     $validated = $request->validate([
@@ -197,7 +159,7 @@ class DonorProfileController extends Controller
     try {
         DB::beginTransaction();
 
-        // ✅ تحديث الملف الشخصي العام
+        
         if ($user->profile) {
             $profileUpdates = [];
             
@@ -209,13 +171,12 @@ class DonorProfileController extends Controller
                 $profileUpdates['city_id'] = $validated['city_id'];
             }
             
-            // ✅ أضف هذا الجزء لتحديث gender
+            
             if (isset($validated['gender'])) {
                 $profileUpdates['gender'] = $validated['gender'];
             }
             
             if ($request->hasFile('personal_photo')) {
-                // حذف الصورة القديمة إذا وجدت
                 if ($user->profile->personal_photo) {
                     $oldPhotoPath = storage_path('app/public/' . $user->profile->personal_photo);
                     if (file_exists($oldPhotoPath)) {
@@ -225,7 +186,7 @@ class DonorProfileController extends Controller
                 $profileUpdates['personal_photo'] = $request->file('personal_photo')->store('profiles', 'public');
             }
 
-            // ✅ تحديث البايو في كلا الجدولين إذا تغير
+            
             if (isset($validated['bio'])) {
                 $profileUpdates['bio'] = $validated['bio'];
             }
@@ -235,7 +196,7 @@ class DonorProfileController extends Controller
             }
         }
 
-        // ✅ تحديث ملف المتبرع
+        
         if ($user->donor) {
             $donorUpdates = [];
             
@@ -258,7 +219,6 @@ class DonorProfileController extends Controller
 
         DB::commit();
 
-        // ✅ إعادة تحميل العلاقات بعد التحديث
         $user->refresh();
         $user->load(['profile', 'donor']);
 

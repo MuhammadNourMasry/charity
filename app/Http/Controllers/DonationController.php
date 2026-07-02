@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DonationRequest as RequestsDonationRequest;
@@ -19,17 +20,14 @@ use Illuminate\Support\Str;
 class DonationController extends Controller
 {
     protected $payerurlService;
-      protected $stripeService;
+    protected $stripeService;
 
-  /*  public function __construct(PayerurlService $payerurlService)
+    public function __construct(StripeService $stripeService, PayerurlService $payerurlService)
     {
+        $this->stripeService = $stripeService;
         $this->payerurlService = $payerurlService;
-    }*/
-
-    public function __construct(StripeService $stripeService)
-    {
-        $this->stripeService = $stripeService;  // ✅ يجب أن يتم تعيينه
     }
+
     /**
      * Create a new donation (Local Payment)
      * POST /api/donor/donations
@@ -37,6 +35,15 @@ class DonationController extends Controller
     public function store(RequestsDonationRequest $request)
     {
         $user = $request->user();
+        $donor = $user->donor;  // ✅ جلب ملف المتبرع
+        
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
+        
         $campaign = Campaign::findOrFail($request->campaign_id);
 
         if ($campaign->status !== 'active') {
@@ -50,7 +57,7 @@ class DonationController extends Controller
             DB::beginTransaction();
 
             $donation = Donation::create([
-                'user_id' => $user->id,
+                'donor_id' => $donor->id,  // ✅ استخدام donor_id
                 'campaign_id' => $campaign->id,
                 'amount' => $request->amount,
                 'currency' => $request->currency ?? 'USD',
@@ -114,13 +121,17 @@ class DonationController extends Controller
 
         $donation->markAsCompleted();
 
-        Notification::sendPushOnly(
-            $donation->user_id,
-            'تبرع ناجح 🎉',
-            "شكراً لك على تبرعك بقيمة $" . number_format($donation->amount, 2) . " لحملة " . $donation->campaign->title,
-            'donation',
-            ['donation_id' => $donation->id]
-        );
+        // ✅ استخدام donor_id لإرسال الإشعار
+        $donor = $donation->donor;
+        if ($donor && $donor->user) {
+            Notification::sendPushOnly(
+                $donor->user->id,
+                'تبرع ناجح 🎉',
+                "شكراً لك على تبرعك بقيمة $" . number_format($donation->amount, 2) . " لحملة " . $donation->campaign->title,
+                'donation',
+                ['donation_id' => $donation->id]
+            );
+        }
 
         return true;
     }
@@ -132,6 +143,15 @@ class DonationController extends Controller
     public function createPayerurlPayment(RequestsDonationRequest $request)
     {
         $user = $request->user();
+        $donor = $user->donor;  // ✅ جلب ملف المتبرع
+        
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
+        
         $campaign = Campaign::findOrFail($request->campaign_id);
 
         if ($campaign->status !== 'active') {
@@ -145,7 +165,7 @@ class DonationController extends Controller
             DB::beginTransaction();
 
             $donation = Donation::create([
-                'user_id' => $user->id,
+                'donor_id' => $donor->id,  // ✅ استخدام donor_id
                 'campaign_id' => $campaign->id,
                 'amount' => $request->amount,
                 'currency' => $request->currency ?? 'USD',
@@ -167,7 +187,6 @@ class DonationController extends Controller
             $amount = (float) $request->amount;
             $currency = $request->currency ?? 'USD';
 
-            // ✅ API Callbacks (بدون web.php)
             $paymentData = [
                 'amount' => $amount,
                 'currency' => $currency,
@@ -224,8 +243,16 @@ class DonationController extends Controller
     public function getDonationQR($id, Request $request)
     {
         $user = $request->user();
+        $donor = $user->donor;
         
-        $donation = Donation::where('user_id', $user->id)
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
+        
+        $donation = Donation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('id', $id)
             ->where('payment_gateway', 'payerurl')
             ->firstOrFail();
@@ -250,7 +277,7 @@ class DonationController extends Controller
     }
 
     /**
-     * Handle PayerURL Webhook (تأكيد الدفع من PayerURL)
+     * Handle PayerURL Webhook
      * POST /api/payerurl/webhook
      */
     public function handlePayerurlWebhook(Request $request)
@@ -284,17 +311,22 @@ class DonationController extends Controller
                 
                 $donation->campaign->updateCollectedAmount();
                 
-                if ($donation->user && $donation->user->donor) {
-                    $donation->user->donor->addDonation($donation->amount);
+                // ✅ تحديث ملف المتبرع
+                $donor = $donation->donor;
+                if ($donor) {
+                    $donor->addDonation($donation->amount);
                 }
                 
-                Notification::sendPushOnly(
-                    $donation->user_id,
-                    'تبرع ناجح 🎉',
-                    "تم تبرعك بقيمة {$donation->amount} {$donation->currency} لحملة {$donation->campaign->title} بنجاح",
-                    'donation',
-                    ['donation_id' => $donation->id]
-                );
+                // ✅ إرسال إشعار للمستخدم عبر donor
+                if ($donor && $donor->user) {
+                    Notification::sendPushOnly(
+                        $donor->user->id,
+                        'تبرع ناجح 🎉',
+                        "تم تبرعك بقيمة {$donation->amount} {$donation->currency} لحملة {$donation->campaign->title} بنجاح",
+                        'donation',
+                        ['donation_id' => $donation->id]
+                    );
+                }
             }
         } elseif ($status === 'failed' || $status === 'cancelled') {
             $donation->update([
@@ -307,14 +339,22 @@ class DonationController extends Controller
     }
 
     /**
-     * ✅ API: Check payment status (بدلاً من صفحات Redirect)
+     * API: Check payment status
      * GET /api/donor/payments/{donation}/status
      */
     public function checkPaymentStatus($donationId, Request $request)
     {
         $user = $request->user();
+        $donor = $user->donor;
         
-        $donation = Donation::where('user_id', $user->id)
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
+        
+        $donation = Donation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('id', $donationId)
             ->firstOrFail();
 
@@ -364,9 +404,17 @@ class DonationController extends Controller
     public function receipt($id, Request $request)
     {
         $user = $request->user();
+        $donor = $user->donor;
+        
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
         
         $donation = Donation::with(['campaign'])
-            ->where('user_id', $user->id)
+            ->where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('id', $id)
             ->firstOrFail();
 
@@ -393,9 +441,17 @@ class DonationController extends Controller
     public function history(Request $request)
     {
         $user = $request->user();
+        $donor = $user->donor;
+        
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
         
         $donations = Donation::with(['campaign'])
-            ->where('user_id', $user->id)
+            ->where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->orderBy('donated_at', 'desc')
             ->paginate($request->get('per_page', 15));
 
@@ -412,8 +468,16 @@ class DonationController extends Controller
     public function statistics(Request $request)
     {
         $user = $request->user();
+        $donor = $user->donor;
         
-        $monthlyTrend = Donation::where('user_id', $user->id)
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
+        
+        $monthlyTrend = Donation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('status', 'completed')
             ->where('donated_at', '>=', now()->subMonths(6))
             ->orderBy('donated_at', 'asc')
@@ -430,17 +494,17 @@ class DonationController extends Controller
             ->values();
         
         $stats = [
-            'total_donations' => Donation::where('user_id', $user->id)
+            'total_donations' => Donation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
                 ->where('status', 'completed')
                 ->count(),
-            'total_amount' => (float) Donation::where('user_id', $user->id)
+            'total_amount' => (float) Donation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
                 ->where('status', 'completed')
                 ->sum('amount'),
-            'campaigns_supported' => Donation::where('user_id', $user->id)
+            'campaigns_supported' => Donation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
                 ->where('status', 'completed')
                 ->distinct('campaign_id')
                 ->count('campaign_id'),
-            'last_donation' => Donation::where('user_id', $user->id)
+            'last_donation' => Donation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
                 ->where('status', 'completed')
                 ->latest('donated_at')
                 ->first(),
@@ -460,9 +524,17 @@ class DonationController extends Controller
     public function show($id, Request $request)
     {
         $user = $request->user();
+        $donor = $user->donor;
+        
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
         
         $donation = Donation::with(['campaign', 'paymentTransaction'])
-            ->where('user_id', $user->id)
+            ->where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('id', $id)
             ->firstOrFail();
 
@@ -472,12 +544,24 @@ class DonationController extends Controller
         ], 200);
     }
 
-  public function downloadReceiptPdf($id, Request $request)
+    /**
+     * Download donation receipt as PDF
+     * GET /api/donor/donations/{id}/pdf
+     */
+    public function downloadReceiptPdf($id, Request $request)
     {
         $user = $request->user();
+        $donor = $user->donor;
         
-        $donation = Donation::with(['campaign', 'user'])
-            ->where('user_id', $user->id)
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
+        
+        $donation = Donation::with(['campaign', 'donor.user'])
+            ->where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('id', $id)
             ->firstOrFail();
 
@@ -491,7 +575,7 @@ class DonationController extends Controller
             'payment_method' => $this->getPaymentMethodName($donation->payment_method),
             'status' => $this->getStatusName($donation->status),
             'date' => $donation->donated_at->format('Y-m-d H:i:s'),
-            'donor_name' => $donation->is_anonymous ? 'متبرع مجهول' : $donation->user->name,
+            'donor_name' => $donation->is_anonymous ? 'متبرع مجهول' : ($donation->donor->user->name ?? 'غير محدد'),
             'is_anonymous' => $donation->is_anonymous,
             'campaign_id' => $donation->campaign_id,
             'donation_id' => $donation->id,
@@ -500,85 +584,25 @@ class DonationController extends Controller
         // إنشاء PDF
         $pdf = Pdf::loadView('pdf.donation_receipt', $data);
         
-        // تحميل PDF
         return $pdf->download("إيصال_تبرع_{$data['receipt_number']}.pdf");
     }
 
     /**
-     * ترجمة طريقة الدفع
+     * Create Stripe payment
+     * POST /api/donor/donations/stripe
      */
-    private function getPaymentMethodName($method): string
-    {
-        $methods = [
-            'stripe' => 'بطاقة ائتمان (Stripe)',
-            'paypal' => 'باي بال',
-            'tap' => 'Tap',
-            'moyasar' => 'Moyasar',
-            'mada' => 'مدى',
-            'apple_pay' => 'Apple Pay',
-            'google_pay' => 'Google Pay',
-            'crypto' => 'عملة رقمية',
-            'payerurl' => 'PayerURL',
-            'local' => 'دفع مباشر',
-        ];
-        
-        return $methods[$method] ?? $method;
-    }
-
-    /**
-     * ترجمة حالة التبرع
-     */
-    private function getStatusName($status): string
-    {
-        $statuses = [
-            'pending' => 'قيد الانتظار',
-            'completed' => 'مكتمل ✅',
-            'failed' => 'فشل ❌',
-            'refunded' => 'مسترد',
-            'cancelled' => 'ملغي',
-        ];
-        
-        return $statuses[$status] ?? $status;
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     public function createStripePayment(RequestsDonationRequest $request)
     {
         $user = $request->user();
+        $donor = $user->donor;  // ✅ جلب ملف المتبرع
+        
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
+        
         $campaign = Campaign::findOrFail($request->campaign_id);
 
         if ($campaign->status !== 'active') {
@@ -591,9 +615,8 @@ class DonationController extends Controller
         try {
             DB::beginTransaction();
 
-            // إنشاء التبرع
             $donation = Donation::create([
-                'user_id' => $user->id,
+                'donor_id' => $donor->id,  // ✅ استخدام donor_id
                 'campaign_id' => $campaign->id,
                 'amount' => $request->amount,
                 'currency' => $request->currency ?? 'USD',
@@ -609,7 +632,6 @@ class DonationController extends Controller
                 'donated_at' => now()
             ]);
 
-            // إنشاء Payment Intent عبر Stripe
             $paymentData = [
                 'amount' => $request->amount,
                 'currency' => $request->currency ?? 'usd',
@@ -629,7 +651,6 @@ class DonationController extends Controller
                 ], 400);
             }
 
-            // تحديث التبرع بمعرف الدفع
             $donation->update([
                 'gateway_payment_id' => $stripePayment['payment_intent_id']
             ]);
@@ -661,7 +682,7 @@ class DonationController extends Controller
     }
 
     /**
-     * ✅ تأكيد دفع Stripe (Client-side confirmation)
+     * Confirm Stripe payment
      * POST /api/donor/donations/stripe/confirm
      */
     public function confirmStripePayment(Request $request)
@@ -672,11 +693,19 @@ class DonationController extends Controller
         ]);
 
         $user = $request->user();
-        $donation = Donation::where('user_id', $user->id)
+        $donor = $user->donor;
+        
+        if (!$donor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على ملف المتبرع'
+            ], 404);
+        }
+        
+        $donation = Donation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('id', $request->donation_id)
             ->firstOrFail();
 
-        // التحقق من حالة الدفع من Stripe
         $paymentStatus = $this->stripeService->confirmPayment($request->payment_intent_id);
 
         if (!$paymentStatus['success']) {
@@ -687,28 +716,26 @@ class DonationController extends Controller
         }
 
         if ($paymentStatus['status'] === 'succeeded') {
-            // تحديث التبرع
             $donation->update([
                 'status' => 'completed',
                 'gateway_status' => 'completed'
             ]);
 
-            // تحديث المبلغ المجمع
             $donation->campaign->updateCollectedAmount();
 
-            // تحديث ملف المتبرع
-            if ($donation->user && $donation->user->donor) {
-                $donation->user->donor->addDonation($donation->amount);
+            if ($donation->donor) {
+                $donation->donor->addDonation($donation->amount);
             }
 
-            // إرسال إشعار
-            Notification::sendPushOnly(
-                $donation->user_id,
-                'تبرع ناجح 🎉',
-                "تم تبرعك بقيمة {$donation->amount} {$donation->currency} لحملة {$donation->campaign->title} بنجاح",
-                'donation',
-                ['donation_id' => $donation->id]
-            );
+            if ($donation->donor && $donation->donor->user) {
+                Notification::sendPushOnly(
+                    $donation->donor->user->id,
+                    'تبرع ناجح 🎉',
+                    "تم تبرعك بقيمة {$donation->amount} {$donation->currency} لحملة {$donation->campaign->title} بنجاح",
+                    'donation',
+                    ['donation_id' => $donation->id]
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -730,7 +757,7 @@ class DonationController extends Controller
     }
 
     /**
-     * ✅ Webhook Stripe
+     * Handle Stripe Webhook
      * POST /api/stripe/webhook
      */
     public function handleStripeWebhook(Request $request)
@@ -738,7 +765,6 @@ class DonationController extends Controller
         $payload = $request->getContent();
         $signature = $request->header('Stripe-Signature');
 
-        // التحقق من التوقيع
         $verified = $this->stripeService->verifyWebhookSignature($payload, $signature);
 
         if (!$verified) {
@@ -761,23 +787,59 @@ class DonationController extends Controller
 
                 $donation->campaign->updateCollectedAmount();
 
-                if ($donation->user && $donation->user->donor) {
-                    $donation->user->donor->addDonation($donation->amount);
+                if ($donation->donor) {
+                    $donation->donor->addDonation($donation->amount);
                 }
 
-                Notification::sendPushOnly(
-                    $donation->user_id,
-                    'تبرع ناجح 🎉',
-                    "تم تبرعك بقيمة {$donation->amount} {$donation->currency} لحملة {$donation->campaign->title} بنجاح",
-                    'donation',
-                    ['donation_id' => $donation->id]
-                );
+                if ($donation->donor && $donation->donor->user) {
+                    Notification::sendPushOnly(
+                        $donation->donor->user->id,
+                        'تبرع ناجح 🎉',
+                        "تم تبرعك بقيمة {$donation->amount} {$donation->currency} لحملة {$donation->campaign->title} بنجاح",
+                        'donation',
+                        ['donation_id' => $donation->id]
+                    );
+                }
             }
         }
 
         return response()->json(['status' => 'success'], 200);
     }
 
-    // ========== باقي الدوال موجودة (store, processPayment, createPayerurlPayment, إلخ) ==========
-    // ...
+    /**
+     * ترجمة طريقة الدفع
+     */
+    private function getPaymentMethodName($method): string
+    {
+        $methods = [
+            'stripe' => 'بطاقة ائتمان (Stripe)',
+            'paypal' => 'باي بال',
+            'tap' => 'Tap',
+            'moyasar' => 'Moyasar',
+            'mada' => 'مدى',
+            'apple_pay' => 'Apple Pay',
+            'google_pay' => 'Google Pay',
+            'crypto' => 'عملة رقمية',
+            'payerurl' => 'PayerURL',
+            'local' => 'دفع مباشر',
+        ];
+        
+        return $methods[$method] ?? $method;
+    }
+
+    /**
+     * ترجمة حالة التبرع
+     */
+    private function getStatusName($status): string
+    {
+        $statuses = [
+            'pending' => 'قيد الانتظار',
+            'completed' => 'مكتمل ',
+            'failed' => 'فشل ',
+            'refunded' => 'مسترد',
+            'cancelled' => 'ملغي',
+        ];
+        
+        return $statuses[$status] ?? $status;
+    }
 }

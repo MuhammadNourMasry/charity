@@ -60,9 +60,9 @@ class User extends Authenticatable
     }
 
     public function donations()
-    {
-        return $this->hasMany(Donation::class);
-    }
+{
+    return $this->hasMany(Donation::class, 'donor_id', 'id');
+}
 
     public function recurringDonations()
     {

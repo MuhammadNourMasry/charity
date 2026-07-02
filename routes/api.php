@@ -163,5 +163,4 @@ Route::get('/categories', [CategoryController::class, 'index']);
     ->name('payerurl.webhook')
     ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);*/
 
-
-    
+//

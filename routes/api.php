@@ -3,12 +3,14 @@
 use App\Http\Controllers\BeneficiaryProfileController;
 use App\Http\Controllers\Api\DonorProfileController;
 use App\Http\Controllers\Api\VolunteerProfileController;
+use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\DayController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DonorProfileController as ControllersDonorProfileController;
+use App\Http\Controllers\DorationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\TypeController;
@@ -42,6 +44,7 @@ Route::prefix('auth')->group(function () {
  });
  Route::prefix('donor')->group(function () {
         Route::post('/complete-profile', [ControllersDonorProfileController::class, 'completeProfile']);
+        Route::post('/donations', [DonationController::class, 'store']);
         Route::get('/get-profile', [ControllersDonorProfileController::class, 'getProfile']);
         Route::get('/cities', [CityController::class, 'index']);
  });
@@ -57,11 +60,21 @@ Route::prefix('auth')->group(function () {
  });
  // routes for dashboard
 Route::post('/login', [EmployeeController::class, 'login']);
-Route::post('/donations', [DonationController::class, 'store']);
-Route::get('/donations', [DonationController::class, 'index']);
-Route::get('/donations/{id}', [DonationController::class, 'show']);
-Route::delete('/donations/{id}', [DonationController::class, 'destroy']);
-Route::get('/users/exportDonations', [DonationController::class, 'export']);
+Route::post('/donations', [DorationController::class, 'store']);
+Route::get('/donations', [DorationController::class, 'index']);
+Route::get('/donations/{id}', [DorationController::class, 'show']);
+Route::delete('/donations/{id}', [DorationController::class, 'destroy']);
+Route::get('/users/exportDonations', [DorationController::class, 'export']);
+
+
+Route::controller(CampaignController::class)->group(function () {
+    Route::get('/campaigns/getAll', 'getAll');
+    Route::post('/campaigns/store', 'store');
+    Route::get('/campaigns/show/{id}', 'showCampaign');
+    Route::put('/campaigns/update/{id}', 'update');
+    Route::delete('/campaigns/delete/{id}', 'destroy');
+});
+
 Route::middleware('auth:sanctum')->group(function () {
 Route::post('/logout', [EmployeeController::class, 'logout']);
 });

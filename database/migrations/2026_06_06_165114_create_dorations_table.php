@@ -6,12 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('donations', function (Blueprint $table) {
+        Schema::create('dorations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('donor_profile_id')->constrained('donor_profiles')->onDelete('cascade');
             $table->string('name');

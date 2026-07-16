@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Donation;
+use App\Models\Doration;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -17,7 +18,7 @@ class DonationExport implements FromCollection,WithHeadings, WithMapping,WithCol
     */
     public function collection()
     {
-        return Donation::with('donorProfile')->get();
+        return Doration::with('donorProfile')->get();
     }
     public function headings(): array
     {

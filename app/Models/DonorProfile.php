@@ -17,8 +17,8 @@ class DonorProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
-    public function donations()
+    public function dorations()
     {
-        return $this->hasMany(Donation::class,'donor_profile_id');
+        return $this->hasMany(Doration::class,'donor_profile_id');
     }
 }

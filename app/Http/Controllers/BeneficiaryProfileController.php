@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\BeneficiaryProfile;
 use App\Http\Requests\BeneficiaryProfileRequest;
 use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class BeneficiaryProfileController extends Controller
 {
@@ -137,6 +140,156 @@ class BeneficiaryProfileController extends Controller
                 ],
                 'profile' => $profileData
             ]
+        ]);
+    }
+     public function index(Request $request)
+    {
+        $query = User::where('role', 'Beneficiary')->with('beneficiary');
+
+        if ($request->has('status')) {
+            $query->whereHas('beneficiary', function ($q) use ($request) {
+                $q->where('status', $request->status);
+            });
+        }
+
+        $beneficiaries = $query->latest()->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'status' => $user->beneficiary ? $user->beneficiary->status : null,
+                ];
+            });
+
+        return response()->json([
+            'status' => true,
+            'data' => $beneficiaries,
+        ]);
+    }
+     public function show($id)
+    {
+        $user = User::where('role', 'Beneficiary')
+            ->with(['beneficiary.types'])
+            ->find($id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'المستفيد غير موجود',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $user,
+        ]);
+    }
+     public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+
+            'family_members_count' => 'nullable|integer|min:1',
+            'Breadwinner' => 'boolean',
+            'has_income' => 'boolean',
+            'income_range' => 'nullable|in:أقل من 100 الف,100-300 الف,300-500 الف,أكثر من 500 الف',
+            'photo_Family_notebook' => 'nullable|string',
+            'photo_Supporting' => 'nullable|string',
+            'marital_status' => 'required|in:أعزب,متزوج,مطلق,أرمل,يتيم',
+            'is_Anonymous' => 'boolean',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = DB::transaction(function () use ($request) {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'Beneficiary',
+                'is_active' => true,
+            ]);
+
+            $user->beneficiary()->create([
+                'family_members_count' => $request->family_members_count ?? 1,
+                'Breadwinner' => $request->Breadwinner ?? false,
+                'has_income' => $request->has_income ?? false,
+                'income_range' => $request->income_range,
+                'photo_Family_notebook' => $request->photo_Family_notebook,
+                'photo_Supporting' => $request->photo_Supporting,
+                'marital_status' => $request->marital_status,
+                'is_Anonymous' => $request->is_Anonymous ?? false,
+                'status' => 'قيد المراجعة',
+                'notes' => $request->notes,
+            ]);
+
+            return $user;
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم انشاء المستفيد بنجاح',
+            'data' => $user->load('beneficiary'),
+        ], 201);
+    }
+     public function updateStatus(Request $request, $id)
+    {
+        $user = User::where('role', 'Beneficiary')->with('beneficiary')->find($id);
+
+        if (!$user || !$user->beneficiary) {
+            return response()->json([
+                'status' => false,
+                'message' => 'المستفيد غير موجود',
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:قيد المراجعة,مقبول,مرفوض',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user->beneficiary->update(['status' => $request->status]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تعديل حالة المستفيد بنجاح',
+            'data' => $user->load('beneficiary'),
+        ]);
+    }
+
+    // حذف مستفيد (يحذف اليوزر والبروفايل تبعه تلقائيًا عبر cascade)
+    public function destroy($id)
+    {
+        $user = User::where('role', 'Beneficiary')->find($id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'المستفيد غير موجود',
+            ], 404);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم حذف المستفيد بنجاح',
         ]);
     }
 }

@@ -41,6 +41,7 @@ Route::prefix('auth')->group(function () {
         Route::get('/get-profile', [BeneficiaryProfileController::class, 'getProfile']);
         Route::get('/cities', [CityController::class, 'index']);
          Route::get('/TypeNeeds', [TypeController::class, 'index']);
+
  });
  Route::prefix('donor')->group(function () {
         Route::post('/complete-profile', [ControllersDonorProfileController::class, 'completeProfile']);
@@ -67,6 +68,11 @@ Route::delete('/donations/{id}', [DorationController::class, 'destroy']);
 Route::get('/users/exportDonations', [DorationController::class, 'export']);
 
 
+Route::get('/beneficiaries', [BeneficiaryProfileController::class, 'index']);
+Route::get('/beneficiaries/{id}', [BeneficiaryProfileController::class, 'show']);
+Route::post('/beneficiaries', [BeneficiaryProfileController::class, 'store']);
+Route::patch('/beneficiaries/{id}/status', [BeneficiaryProfileController::class, 'updateStatus']);
+Route::delete('/beneficiaries/{id}', [BeneficiaryProfileController::class, 'destroy']);
 Route::controller(CampaignController::class)->group(function () {
     Route::get('/campaigns/getAll', 'getAll');
     Route::post('/campaigns/store', 'store');

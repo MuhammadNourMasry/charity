@@ -18,20 +18,22 @@ class DatabaseSeeder extends Seeder
             SkillSeeder::class,
             CategorySeeder::class,
             TypeSeeder::class,
-            
+
             // ✅ المستخدمين
             DonorSeeder::class,
              BeneficiarySeeder::class, // إذا كان موجوداً
              VolunteerSeeder::class,   // إذا كان موجوداً
-            
+
             // ✅ الحملات
             CampaignSeeder::class,
-            
+
             // ✅ التبرعات
             RandomDonationsSeeder::class,
-            
+
             // ✅ المهام التطوعية (جديد)
             VolunteerTaskSeeder::class,
+            // ✅ الموظفين
+            EmployeeSeeder::class,
         ]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CampaignRequest;
 use App\Models\Campaign;
 use App\Models\CampaignUpdate;
 use App\Models\Notification;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 
 class CampaignController extends Controller
 {
@@ -204,7 +206,7 @@ class CampaignController extends Controller
     public function updates($id)
     {
         $campaign = Campaign::findOrFail($id);
-        
+
         $updates = $campaign->updates()
             ->with('creator')
             ->orderBy('created_at', 'desc')
@@ -227,16 +229,16 @@ class CampaignController extends Controller
             'أطفال', 'بيئة', 'ثقافة', 'رياضة',
             'تكنولوجيا', 'تنمية مجتمعية'
         ];
-        
+
         $categoriesFromCampaigns = Campaign::select('category')
             ->distinct()
             ->whereNotNull('category')
             ->pluck('category')
             ->toArray();
-        
+
         $mergedCategories = array_unique(array_merge($allCategories, $categoriesFromCampaigns));
         sort($mergedCategories);
-        
+
         return response()->json([
             'success' => true,
             'data' => array_values($mergedCategories)
@@ -246,72 +248,84 @@ class CampaignController extends Controller
     /**
      * ✅ من الملف الأول: Create a new campaign (مع volunteer_ids)
      */
-    public function store(Request $request)
+
+public function store(CampaignRequest $request): JsonResponse
     {
-        // حل مشكلة قراءة JSON
-        if (empty($request->all())) {
-            $jsonData = $request->json()->all();
-            if (!empty($jsonData)) {
-                $request->merge($jsonData);
-            }
-        }
+         $campaign = Campaign::create($request->validated());
+         // 👈 ضفنا قيم افتراضية عشان الرياكت ما يخبط
+         $campaign->achieved_amount = 0;
+         $campaign->donors_count = 0;
+         $campaign->progress_percentage = 0;
 
-        if (!Auth::check()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'يجب تسجيل الدخول لإنشاء حملة'
-            ], 401);
-        }
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'goal_amount' => 'required|numeric|min:1000',
-            'category' => 'nullable|string|max:100',
-            'is_emergency' => 'boolean',
-            'start_date' => 'nullable|date|after_or_equal:today',
-            'end_date' => 'nullable|date|after:start_date',
-            'location' => 'nullable|string|max:255',
-            'volunteer_ids' => 'nullable|array',
-            'volunteer_ids.*' => 'exists:volunter_profiles,id',
-        ]);
-
-        $validated['collected_amount'] = 0;
-        $validated['status'] = 'draft';
-        $validated['created_by'] = Auth::id();
-        $validated['short_url'] = Str::random(8);
-        
-        try {
-            $campaign = Campaign::create($validated);
-            
-            Notification::sendPushOnly(
-                Auth::id(),
-                '📢 تم إنشاء حملة جديدة',
-                "تم إنشاء حملة '{$campaign->title}' بنجاح. وهي قيد المراجعة.",
-                'campaign',
-                ['campaign_id' => $campaign->id]
-            );
-            
-            $volunteerIds = $request->volunteer_ids ?? [];
-            $this->createVolunteerTasksForCampaign($campaign, $volunteerIds);
-            
-            $campaign->load('volunteerTasks');
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'تم إنشاء الحملة بنجاح. وهي قيد المراجعة.',
-                'data' => $campaign
-            ], 201);
-            
-        } catch (\Exception $e) {
-            Log::error('Campaign creation failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء الحملة',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+         return response()->json($this->formatCampaignData($campaign), 201);
     }
+
+    // public function store(Request $request)
+    // {
+    //     // حل مشكلة قراءة JSON
+    //     if (empty($request->all())) {
+    //         $jsonData = $request->json()->all();
+    //         if (!empty($jsonData)) {
+    //             $request->merge($jsonData);
+    //         }
+    //     }
+
+    //     if (!Auth::check()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'يجب تسجيل الدخول لإنشاء حملة'
+    //         ], 401);
+    //     }
+
+    //     $validated = $request->validate([
+    //         'title' => 'required|string|max:255',
+    //         'description' => 'required|string',
+    //         'goal_amount' => 'required|numeric|min:1000',
+    //         'category' => 'nullable|string|max:100',
+    //         'is_emergency' => 'boolean',
+    //         'start_date' => 'nullable|date|after_or_equal:today',
+    //         'end_date' => 'nullable|date|after:start_date',
+    //         'location' => 'nullable|string|max:255',
+    //         'volunteer_ids' => 'nullable|array',
+    //         'volunteer_ids.*' => 'exists:volunter_profiles,id',
+    //     ]);
+
+    //     $validated['collected_amount'] = 0;
+    //     $validated['status'] = 'draft';
+    //     $validated['created_by'] = Auth::id();
+    //     $validated['short_url'] = Str::random(8);
+
+    //     try {
+    //         $campaign = Campaign::create($validated);
+
+    //         Notification::sendPushOnly(
+    //             Auth::id(),
+    //             '📢 تم إنشاء حملة جديدة',
+    //             "تم إنشاء حملة '{$campaign->title}' بنجاح. وهي قيد المراجعة.",
+    //             'campaign',
+    //             ['campaign_id' => $campaign->id]
+    //         );
+
+    //         $volunteerIds = $request->volunteer_ids ?? [];
+    //         $this->createVolunteerTasksForCampaign($campaign, $volunteerIds);
+
+    //         $campaign->load('volunteerTasks');
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'تم إنشاء الحملة بنجاح. وهي قيد المراجعة.',
+    //             'data' => $campaign
+    //         ], 201);
+
+    //     } catch (\Exception $e) {
+    //         Log::error('Campaign creation failed: ' . $e->getMessage());
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'حدث خطأ أثناء إنشاء الحملة',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
 
     /**
      * ✅ من الملف الثاني: Update campaign
@@ -335,6 +349,7 @@ class CampaignController extends Controller
             'start_date' => 'nullable|date|after_or_equal:today',
             'end_date' => 'nullable|date|after:start_date',
             'location' => 'nullable|string|max:255',
+            'status' => 'sometimes|in:draft,review,active,closed,completed,cancelled,متوقفة,نشطة,مغلقة,مكتملة,ملغية',
         ]);
 
         $campaign->update($validated);
@@ -358,7 +373,7 @@ class CampaignController extends Controller
         $user = Auth::user();
         $isAdmin = $user->role === 'admin' || $user->role === 'Admin';
         $isCreator = $campaign->created_by == $user->id;
-        
+
         if (!$isAdmin && !$isCreator) {
             return response()->json([
                 'success' => false,
@@ -367,7 +382,7 @@ class CampaignController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|in:draft,review,active,closed,completed,cancelled',
+            'status' => 'required|in:draft,review,active,closed,completed,cancelled,متوقفة,نشطة,مغلقة,مكتملة,ملغية',
             'reason' => 'required_if:status,cancelled|nullable|string|max:500'
         ]);
 
@@ -375,11 +390,11 @@ class CampaignController extends Controller
         $newStatus = $request->status;
 
         $campaign->status = $newStatus;
-        
+
         if ($newStatus === 'cancelled') {
             $campaign->cancelled_reason = $request->reason;
         }
-        
+
         if ($newStatus === 'completed') {
             if ($campaign->collected_amount < $campaign->goal_amount) {
                 return response()->json([
@@ -388,13 +403,13 @@ class CampaignController extends Controller
                 ], 400);
             }
         }
-        
+
         if ($newStatus === 'active') {
             if (!$campaign->start_date || $campaign->start_date > now()) {
                 $campaign->start_date = now();
             }
         }
-        
+
         $campaign->save();
 
         $this->sendStatusChangeNotifications($campaign, $oldStatus, $newStatus);
@@ -435,24 +450,24 @@ class CampaignController extends Controller
     public function checkAndUpdateStatus($id)
     {
         $campaign = Campaign::findOrFail($id);
-        
+
         $oldStatus = $campaign->status;
         $autoUpdated = false;
-        
+
         if ($campaign->status === 'active' && $campaign->collected_amount >= $campaign->goal_amount) {
             $campaign->status = 'completed';
             $campaign->save();
             $autoUpdated = true;
             $this->sendStatusChangeNotifications($campaign, $oldStatus, 'completed');
         }
-        
+
         if ($campaign->status === 'active' && $campaign->end_date && $campaign->end_date < now()) {
             $campaign->status = 'closed';
             $campaign->save();
             $autoUpdated = true;
             $this->sendStatusChangeNotifications($campaign, $oldStatus, 'closed');
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => $autoUpdated ? 'تم تحديث حالة الحملة تلقائياً' : 'الحالة كما هي',
@@ -476,10 +491,10 @@ class CampaignController extends Controller
             ->get()
             ->pluck('user')
             ->unique('id');
-        
+
         $title = $this->getNotificationTitle($campaign->title, $newStatus);
         $body = $this->getNotificationBody($campaign, $oldStatus, $newStatus);
-        
+
         foreach ($donors as $donor) {
             if ($donor && $donor->id) {
                 Notification::sendPushOnly(
@@ -491,7 +506,7 @@ class CampaignController extends Controller
                 );
             }
         }
-        
+
         $creator = User::find($campaign->created_by);
         if ($creator) {
             Notification::sendPushOnly(
@@ -527,7 +542,7 @@ class CampaignController extends Controller
         $progress = $campaign->progress_percentage;
         $collected = number_format($campaign->collected_amount, 2);
         $goal = number_format($campaign->goal_amount, 2);
-        
+
         return match ($newStatus) {
             'active' => "تم تفعيل حملة {$campaign->title}. يمكنك الآن التبرع لدعم هذا المشروع.",
             'completed' => "الحمد لله! حملة {$campaign->title} حققت هدفها البالغ {$goal} \$ بنسبة {$progress}% من {$collected} \$ متبرع. شكراً لدعمكم!",
@@ -587,13 +602,13 @@ class CampaignController extends Controller
 
         if (!empty($volunteerIds)) {
             $volunteers = VolunterProfile::whereIn('id', $volunteerIds)->get();
-            
+
             if ($volunteers->isEmpty()) {
                 $volunteers = VolunterProfile::limit(1)->get();
             }
         } else {
             $volunteers = VolunterProfile::where('status', 'متاح')->get();
-            
+
             if ($volunteers->isEmpty()) {
                 $user = User::create([
                     'name' => 'متطوع افتراضي',
@@ -603,7 +618,7 @@ class CampaignController extends Controller
                     'profile_completed' => true,
                     'email_verified_at' => now(),
                 ]);
-                
+
                 $volunteer = VolunterProfile::create([
                     'user_id' => $user->id,
                     'Favorite_period' => 'صباحاً',
@@ -612,7 +627,7 @@ class CampaignController extends Controller
                     'status' => 'متاح',
                     'total_hours' => 0,
                 ]);
-                
+
                 $volunteers = collect([$volunteer]);
             }
         }
@@ -637,10 +652,10 @@ class CampaignController extends Controller
 
         $volunteerIndex = 0;
         $volunteerCount = $volunteers->count();
-        
+
         foreach ($tasks as $taskData) {
             $volunteer = $volunteers[$volunteerIndex % $volunteerCount];
-            
+
             VolunteerTask::create([
                 'campaign_id' => $campaign->id,
                 'volunteer_id' => $volunteer->id,
@@ -651,7 +666,7 @@ class CampaignController extends Controller
                 'supervisor_id' => $supervisorId,
                 'expected_end_time' => now()->addDays(7),
             ]);
-            
+
             $volunteerIndex++;
         }
     }

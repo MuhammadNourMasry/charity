@@ -20,10 +20,11 @@ return new class extends Migration
             $table->text('admin_notes')->nullable();
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('reviewed_at')->nullable();
+            $table->date('application_date')->nullable();
             $table->decimal('amount_requested', 15, 2)->nullable();
             $table->decimal('amount_approved', 15, 2)->nullable();
             $table->timestamps();
-            
+
             // Indexes for better performance
             $table->index(['user_id', 'status']);
             $table->index(['type', 'is_urgent']);

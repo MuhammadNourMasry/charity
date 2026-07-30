@@ -143,11 +143,11 @@ class VolunterProfileController extends Controller
             ], 500);
         }
     }
-    public function getVolunteers(Request $request)
+   public function getVolunteers(Request $request)
 {
     $volunteers = User::with([
         'profile.city',
-        'volunteer.skills'
+        'volunterProfile.skills'
     ])
     ->where('role', 'volunteer')
     ->get();
@@ -164,13 +164,13 @@ class VolunterProfileController extends Controller
 
                 'phone' => optional($user->profile)->phone,
 
-                'skills' => optional($user->volunteer)
-                    ? $user->volunteer->skills->pluck('name')->values()
+                'skills' => optional($user->volunterProfile)
+                    ? $user->volunterProfile->skills->pluck('name')->values()
                     : [],
 
-                'total_hours' => optional($user->volunteer)->total_hours ?? 0,
+                'total_hours' => optional($user->volunterProfile)->total_hours ?? 0,
 
-                'status' => optional($user->volunteer)->status,
+                'status' => optional($user->volunterProfile)->status,
 
                 'photo' => optional($user->profile)->personal_photo,
             ];

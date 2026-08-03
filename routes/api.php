@@ -276,6 +276,13 @@ Route::patch('/volunteers/{id}/status', [ControllersVolunterProfileController::c
 Route::get('/volunteers/{id}', [ControllersVolunterProfileController::class, 'show']);
 
 
+Route::post('/volunteer-tasks', [VolunteerTaskController::class, 'store']);
+Route::post('/volunteer-tasks/{task}/assign', [VolunteerTaskController::class, 'assign']);
+Route::get('volunteer-tasks/pending-evaluation', [VolunteerTaskController::class, 'pendingEvaluation']);
+Route::post('volunteer-tasks/{id}/evaluate', [VolunteerTaskController::class, 'evaluate']);
+
+
+
 Route::prefix('aid-applications')->group(function () {
     Route::get('/', [AidApplicationController::class, 'getAll']);
     Route::get('/{id}', [AidApplicationController::class, 'display']);

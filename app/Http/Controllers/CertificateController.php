@@ -10,15 +10,14 @@ class CertificateController extends Controller
 {
     /**
      * عرض جميع شهادات المتطوع
-     * 
+     *
      * @api {get} /api/volunteer/certificates Get Certificates
      * @apiHeader Authorization Bearer {token}
      */
     public function index(Request $request)
     {
         $user = $request->user();
-        $volunteer = $user->volunteer;
-
+        $volunteer = $user->volunterProfile;
         if (!$volunteer) {
             return response()->json([
                 'code' => '404',
@@ -49,15 +48,14 @@ class CertificateController extends Controller
 
     /**
      * عرض تفاصيل شهادة معينة
-     * 
+     *
      * @api {get} /api/volunteer/certificates/{id} Get Certificate Details
      * @apiHeader Authorization Bearer {token}
      */
     public function show($id, Request $request)
     {
         $user = $request->user();
-        $volunteer = $user->volunteer;
-
+        $volunteer = $user->volunterProfile;
         if (!$volunteer) {
             return response()->json([
                 'code' => '404',
@@ -88,7 +86,7 @@ class CertificateController extends Controller
 
     /**
      * إنشاء شهادة جديدة (للأدمن فقط)
-     * 
+     *
      * @api {post} /api/admin/certificates Create Certificate
      * @apiHeader Authorization Bearer {admin_token}
      */
@@ -130,7 +128,7 @@ class CertificateController extends Controller
 
     /**
      * تحديث شهادة (للأدمن فقط)
-     * 
+     *
      * @api {put} /api/admin/certificates/{id} Update Certificate
      * @apiHeader Authorization Bearer {admin_token}
      */
@@ -171,7 +169,7 @@ class CertificateController extends Controller
 
     /**
      * حذف شهادة (للأدمن فقط)
-     * 
+     *
      * @api {delete} /api/admin/certificates/{id} Delete Certificate
      * @apiHeader Authorization Bearer {admin_token}
      */

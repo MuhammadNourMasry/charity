@@ -13,14 +13,14 @@ use Faker\Factory as Faker;
 
 class RandomDonationsSeeder extends Seeder
 {
-    
+
     public function run(): void
     {
         $faker = Faker::create();
 
-       
+
         $users = User::where('role', 'Donor')->where('profile_completed', true)->get();
-        $campaigns = Campaign::where('status', 'active')->get();
+        $campaigns = Campaign::where('status', 'نشطة')->get();
 
         if ($users->isEmpty()) {
             $this->command->warn(' لا يوجد متبرعين. يرجى إنشاء متبرعين أولاً.');
@@ -51,11 +51,11 @@ class RandomDonationsSeeder extends Seeder
         $donationsCreated = 0;
 
         for ($i = 0; $i < $numberOfDonations; $i++) {
-          
+
             $user = $users->random();
             $campaign = $campaigns->random();
 
-            
+
             $amount = $faker->randomFloat(2, 5, 500);
             $status = $faker->randomElement($donationStatuses);
             $paymentMethod = $faker->randomElement($paymentMethods);
@@ -65,13 +65,13 @@ class RandomDonationsSeeder extends Seeder
             $isRecurring = $faker->boolean(10);
             $isGift = $faker->boolean(5);
 
-            
+
             $donatedAt = $faker->dateTimeBetween('-3 months', 'now');
 
             try {
                 DB::beginTransaction();
 
-               
+
                 $donationData = [
                     'campaign_id' => $campaign->id,
                     'amount' => $amount,
@@ -90,19 +90,19 @@ class RandomDonationsSeeder extends Seeder
                     'updated_at' => $donatedAt,
                 ];
 
-               
+
                 try {
-                  
+
                     $donationData['donor_id'] = $user->id;
                     $donation = Donation::create($donationData);
                 } catch (\Exception $e) {
-                   
+
                     unset($donationData['donor_id']);
                     $donationData['user_id'] = $user->id;
                     $donation = Donation::create($donationData);
                 }
 
-               
+
                 if ($status === 'completed') {
                     PaymentTransaction::create([
                         'donation_id' => $donation->id,
@@ -116,15 +116,15 @@ class RandomDonationsSeeder extends Seeder
                         'updated_at' => $donatedAt,
                     ]);
 
-                   
+
                     $campaign->collected_amount += $amount;
                     $campaign->save();
 
-                  
+
                     if ($user->donor) {
                         $user->donor->total_donated += $amount;
                         $user->donor->loyalty_points += (int) $amount;
-                        
+
                         if (method_exists($user->donor, 'updateLoyaltyTier')) {
                             $user->donor->updateLoyaltyTier();
                         } else {
@@ -156,11 +156,11 @@ class RandomDonationsSeeder extends Seeder
         $this->command->newLine(2);
         $this->command->info(" تم إنشاء {$donationsCreated} تبرع عشوائي بنجاح!");
 
-        
+
         $this->showStatistics();
     }
 
-  
+
     private function showStatistics(): void
     {
         $totalDonations = Donation::count();
@@ -178,7 +178,7 @@ class RandomDonationsSeeder extends Seeder
         $this->command->line("    المتبرعين: {$totalDonors}");
         $this->command->newLine();
 
-       
+
         $topCampaigns = Campaign::withCount(['donations as total_donations' => function($q) {
                 $q->where('status', 'completed');
             }])
@@ -196,7 +196,7 @@ class RandomDonationsSeeder extends Seeder
             $this->command->line("   {$campaign->title}: $" . number_format($amount, 2) . " ({$donations} تبرع)");
         }
 
-        
+
         $topDonors = User::whereHas('donor')
             ->with('donor')
             ->get()

@@ -23,7 +23,7 @@ class RecurringDonationController extends Controller
         $campaign = Campaign::findOrFail($request->campaign_id);
 
         // Check if campaign is active
-        if ($campaign->status !== 'active') {
+        if ($campaign->status !== 'نشطة') {
             return response()->json([
                 'success' => false,
                 'message' => 'هذه الحملة غير نشطة حالياً'
@@ -88,7 +88,7 @@ class RecurringDonationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء إنشاء التبرع الدوري',
@@ -104,14 +104,14 @@ class RecurringDonationController extends Controller
     {
         $user = $request->user();
         $donor = $user->donor;
-        
+
         if (!$donor) {
             return response()->json([
                 'success' => false,
                 'message' => 'لم يتم العثور على ملف المتبرع'
             ], 404);
         }
-        
+
         $recurringDonations = RecurringDonation::with(['campaign'])
             ->where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('is_active', true)
@@ -130,14 +130,14 @@ class RecurringDonationController extends Controller
     {
         $user = $request->user();
         $donor = $user->donor;
-        
+
         if (!$donor) {
             return response()->json([
                 'success' => false,
                 'message' => 'لم يتم العثور على ملف المتبرع'
             ], 404);
         }
-        
+
         $recurring = RecurringDonation::where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('id', $id)
             ->firstOrFail();
@@ -164,14 +164,14 @@ class RecurringDonationController extends Controller
     {
         $user = $request->user();
         $donor = $user->donor;
-        
+
         if (!$donor) {
             return response()->json([
                 'success' => false,
                 'message' => 'لم يتم العثور على ملف المتبرع'
             ], 404);
         }
-        
+
         $recurring = RecurringDonation::with(['campaign', 'donation'])
             ->where('donor_id', $donor->id)  // ✅ استخدام donor_id
             ->where('id', $id)

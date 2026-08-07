@@ -18,7 +18,7 @@ class DonationCartController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        
+
         $cartItems = DonationCart::with(['campaign'])
             ->where('user_id', $user->id)
             ->get();
@@ -89,7 +89,7 @@ class DonationCartController extends Controller
         ]);
 
         $user = $request->user();
-        
+
         $cartItem = DonationCart::where('user_id', $user->id)
             ->where('id', $id)
             ->firstOrFail();
@@ -108,7 +108,7 @@ class DonationCartController extends Controller
     public function remove($id, Request $request)
     {
         $user = $request->user();
-        
+
         $cartItem = DonationCart::where('user_id', $user->id)
             ->where('id', $id)
             ->firstOrFail();
@@ -127,7 +127,7 @@ class DonationCartController extends Controller
     public function clear(Request $request)
     {
         $user = $request->user();
-        
+
         DonationCart::where('user_id', $user->id)->delete();
 
         return response()->json([
@@ -142,7 +142,7 @@ class DonationCartController extends Controller
     public function checkout(Request $request)
     {
         $user = $request->user();
-        
+
         $cartItems = DonationCart::with(['campaign'])
             ->where('user_id', $user->id)
             ->get();
@@ -158,7 +158,7 @@ class DonationCartController extends Controller
 
         // Create donations for each cart item
         $donations = [];
-        
+
         foreach ($cartItems as $item) {
             $donation = Donation::create([
                 'donor_id' => $user->id,
@@ -167,16 +167,16 @@ class DonationCartController extends Controller
                 'amount' => $item->amount,
                 'currency' => 'USD',
                 'payment_method' => $request->payment_method ?? 'stripe',
-                'status' => 'pending',
+                'status' => 'قيد الانتظار',
                 'donated_at' => now()
             ]);
-            
+
             $donations[] = $donation;
         }
 
         // Process payment for total amount
         // In real implementation, this would integrate with payment gateway
-        
+
         // Clear cart after successful checkout
         DonationCart::where('user_id', $user->id)->delete();
 

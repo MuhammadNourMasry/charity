@@ -48,7 +48,7 @@ class DonationController extends Controller
 
         $campaign = Campaign::findOrFail($request->campaign_id);
 
-        if ($campaign->status !== 'active') {
+        if ($campaign->status !== 'نشطة') {
             return response()->json([
                 'success' => false,
                 'message' => 'هذه الحملة غير نشطة حالياً'
@@ -152,10 +152,9 @@ class DonationController extends Controller
             'message' => 'لم يتم العثور على ملف المتبرع'
         ], 404);
     }
-
     $campaign = Campaign::findOrFail($request->campaign_id);
 
-    if ($campaign->status !== 'active') {
+    if ($campaign->status !== 'نشطة') {
         return response()->json([
             'success' => false,
             'message' => 'هذه الحملة غير نشطة حالياً'
@@ -616,10 +615,17 @@ public function handleStripeWebhook(Request $request)
             ], 404);
         }
 
-        $donation = Donation::with(['campaign'])
-            ->where('donor_id', $donor->id)
-            ->where('id', $id)
-            ->firstOrFail();
+      $donation = Donation::with(['campaign'])
+    ->where('donor_id', $donor->id)
+    ->where('id', $id)
+    ->first();
+
+if (!$donation) {
+    return response()->json([
+        'success' => false,
+        'message' => 'الإيصال غير موجود'
+    ], 404);
+}
 
         return response()->json([
             'success' => true,

@@ -119,7 +119,7 @@ class AidApplicationController extends Controller
                 'description' => $validated['description'],
                 'is_urgent' => $validated['is_urgent'] ?? false,
                 'amount_requested' => $validated['amount_requested'] ?? null,
-                'status' => 'pending',
+                'status' => 'قيد الانتظار',
             ]);
 
             // ✅ إنشاء مهمة مفتوحة للجميع
@@ -152,7 +152,7 @@ class AidApplicationController extends Controller
         $user = $request->user();
 
         $application = AidApplication::where('user_id', $user->id)
-            ->where('status', 'pending')
+            ->where('status', 'قيد الانتظار') // فقط يمكن تعديل الطلبات التي لم يتم مراجعتها بعد
             ->findOrFail($id);
 
         try {
@@ -192,7 +192,7 @@ class AidApplicationController extends Controller
         $user = $request->user();
 
         $application = AidApplication::where('user_id', $user->id)
-            ->where('status', 'pending')
+            ->where('status', 'قيد الانتظار')
             ->findOrFail($id);
 
         try {
@@ -239,7 +239,7 @@ class AidApplicationController extends Controller
         if ($request->has('status')) {
             $query->where('status', $request->status);
         } else {
-            $query->orderByRaw("FIELD(status, 'pending', 'reviewing', 'approved', 'rejected', 'completed', 'cancelled')");
+            $query->orderByRaw("FIELD(status, 'قيد الانتظار', 'قيد المراجعة', 'مقبول', 'مرفوض', 'مكتمل', 'ملغى')");
         }
 
         if ($request->has('type')) {
@@ -355,12 +355,12 @@ class AidApplicationController extends Controller
 
         $stats = [
             'total' => AidApplication::where('user_id', $user->id)->count(),
-            'pending' => AidApplication::where('user_id', $user->id)->where('status', 'pending')->count(),
-            'reviewing' => AidApplication::where('user_id', $user->id)->where('status', 'reviewing')->count(),
-            'approved' => AidApplication::where('user_id', $user->id)->where('status', 'approved')->count(),
-            'rejected' => AidApplication::where('user_id', $user->id)->where('status', 'rejected')->count(),
-            'completed' => AidApplication::where('user_id', $user->id)->where('status', 'completed')->count(),
-            'urgent' => AidApplication::where('user_id', $user->id)->where('is_urgent', true)->count(),
+            'قيد الانتظار' => AidApplication::where('user_id', $user->id)->where('status', 'قيد الانتظار')->count(),
+            'قيد المراجعة' => AidApplication::where('user_id', $user->id)->where('status', 'قيد المراجعة')->count(),
+            'مقبول' => AidApplication::where('user_id', $user->id)->where('status', 'مقبول')->count(),
+            'مرفوض' => AidApplication::where('user_id', $user->id)->where('status', 'مرفوض')->count(),
+            'مكتمل' => AidApplication::where('user_id', $user->id)->where('status', 'مكتمل')->count(),
+            'عاجل' => AidApplication::where('user_id', $user->id)->where('is_urgent', true)->count(),
         ];
 
         return response()->json([
@@ -391,12 +391,12 @@ class AidApplicationController extends Controller
             'code' => '200',
             'success' => true,
             'data' => [
-                'pending' => 'قيد الانتظار',
-                'reviewing' => 'قيد المراجعة',
-                'approved' => 'مقبولة',
-                'rejected' => 'مرفوضة',
-                'completed' => 'مكتملة',
-                'cancelled' => 'ملغية'
+                'قيد الانتظار' => 'قيد الانتظار',
+                'قيد المراجعة' => 'قيد المراجعة',
+                'مقبولة' => 'مقبولة',
+                'مرفوضة' => 'مرفوضة',
+                'مكتملة' => 'مكتملة',
+                'ملغية' => 'ملغية'
             ]
         ], 200);
     }
@@ -445,10 +445,10 @@ class AidApplicationController extends Controller
     private function mapStatusToTaskStatus($status)
     {
         return match($status) {
-            'pending', 'reviewing' => 'جديدة',
-            'approved' => 'جديدة', // تبقى مفتوحة للمتطوعين
-            'completed' => 'مكتملة',
-            'rejected', 'cancelled' => 'ملغية',
+            'قيد الانتظار', 'قيد المراجعة' => 'جديدة',
+            'مقبول' => 'جديدة', // تبقى مفتوحة للمتطوعين
+            'مكتمل' => 'مكتملة',
+            'مرفوض', 'ملغى' => 'ملغية',
             default => 'جديدة',
         };
     }
@@ -488,21 +488,21 @@ class AidApplicationController extends Controller
     private function notifyBeneficiary(AidApplication $application, $oldStatus, $newStatus)
     {
         $statusMessages = [
-            'approved' => '✅ تم قبول طلبك! سنتواصل معك قريباً.',
-            'rejected' => '❌ عذراً، تم رفض طلبك. يمكنك مراجعة الأسباب في الملاحظات.',
-            'reviewing' => '🔄 طلبك قيد المراجعة من قبل الفريق المختص.',
-            'completed' => '✅ تم إكمال طلبك بنجاح.',
-            'cancelled' => '❌ تم إلغاء طلبك.',
+            'مقبولة' => '✅ تم قبول طلبك! سنتواصل معك قريباً.',
+            'مرفوضة' => '❌ عذراً، تم رفض طلبك. يمكنك مراجعة الأسباب في الملاحظات.',
+            'قيد المراجعة' => '🔄 طلبك قيد المراجعة من قبل الفريق المختص.',
+            'مكتملة' => '✅ تم إكمال طلبك بنجاح.',
+            'ملغية' => '❌ تم إلغاء طلبك.',
         ];
 
         $title = "📢 تحديث حالة طلب المساعدة";
         $body = $statusMessages[$newStatus] ?? "تم تحديث حالة طلبك إلى: " . $this->getStatusText($newStatus);
 
-        if ($newStatus === 'approved' && $application->amount_approved) {
+        if ($newStatus === 'مقبولة' && $application->amount_approved) {
             $body .= " المبلغ المعتمد: {$application->amount_approved} \$";
         }
 
-        if ($newStatus === 'rejected' && $application->admin_notes) {
+        if ($newStatus === 'مرفوضة' && $application->admin_notes) {
             $body .= " السبب: {$application->admin_notes}";
         }
 
@@ -525,12 +525,12 @@ class AidApplicationController extends Controller
     private function getStatusText($status)
     {
         return match($status) {
-            'pending' => 'قيد الانتظار',
-            'reviewing' => 'قيد المراجعة',
-            'approved' => 'مقبولة',
-            'rejected' => 'مرفوضة',
-            'completed' => 'مكتملة',
-            'cancelled' => 'ملغية',
+            'قيد الانتظار' => 'قيد الانتظار',
+            'قيد المراجعة' => 'قيد المراجعة',
+            'مقبولة' => 'مقبولة',
+            'مرفوضة' => 'مرفوضة',
+            'مكتملة' => 'مكتملة',
+            'ملغية' => 'ملغية',
             default => $status,
         };
     }
@@ -595,7 +595,7 @@ class AidApplicationController extends Controller
     {
 
     $validated = $request->validate([
-        'status'          => 'required|in:pending,reviewing,approved,rejected,completed,cancelled',
+        'status'          => 'required|in:قيد الانتظار,قيد المراجعة,مقبولة,مرفوضة,مكتملة,ملغية',
         'admin_notes'     => 'nullable|string|max:1000',
         'amount_approved' => 'nullable|numeric',
     ]);

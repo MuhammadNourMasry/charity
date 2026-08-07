@@ -32,8 +32,8 @@ class AidApplication extends Model
     ];
 
     const TYPES = ['مالية', 'تعليمية', 'صحية', 'نفسية', 'إغاثية', 'إيواء', 'غذاء', 'مياه', 'كسوة', 'دعم نفسي', 'تمكين اقتصادي'];
-    
-    const STATUSES = ['pending', 'reviewing', 'approved', 'rejected', 'completed', 'cancelled'];
+
+    const STATUSES = ['قيد الانتظار', 'قيد المراجعة', 'مقبول', 'مرفوض', 'مكتمل', 'ملغى'];
 
     // Relationships
     public function beneficiary()
@@ -54,7 +54,7 @@ class AidApplication extends Model
     // Scopes
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', 'قيد المراجعة');
     }
 
     public function scopeUrgent($query)

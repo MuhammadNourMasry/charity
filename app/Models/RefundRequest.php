@@ -42,11 +42,11 @@ class RefundRequest extends Model
         $this->processed_by = $adminId;
         $this->processed_at = now();
         $this->save();
-        
+
         // Update donation status
-        $this->donation->status = 'refunded';
+        $this->donation->status = 'مسترد';
         $this->donation->save();
-        
+
         return $this;
     }
 
@@ -57,7 +57,7 @@ class RefundRequest extends Model
         $this->processed_by = $adminId;
         $this->processed_at = now();
         $this->save();
-        
+
         return $this;
     }
 }

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('type');
             $table->text('description');
             $table->boolean('is_urgent')->default(false);
-            $table->enum('status', ['pending', 'reviewing', 'approved', 'rejected', 'completed', 'cancelled'])->default('pending');
+            $table->enum('status', ['قيد الانتظار', 'قيد المراجعة', 'مقبول', 'مرفوض', 'مكتمل', 'ملغى'])->default('قيد المراجعة');
             $table->text('admin_notes')->nullable();
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('reviewed_at')->nullable();

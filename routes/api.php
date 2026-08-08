@@ -20,6 +20,7 @@ use App\Http\Controllers\LoyaltyPointsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RecurringDonationController;
 use App\Http\Controllers\RefundController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\SponsorshipController;
 use App\Http\Controllers\TypeController;
@@ -240,7 +241,12 @@ Route::controller(CampaignController::class)->group(function () {
     Route::delete('/campaigns/delete/{id}', 'destroy');
 });
 });
-
+Route::prefix('reports')->group(function () {
+Route::get('/general', [ReportController::class, 'general']);
+Route::get('/donations', [ReportController::class, 'donations']);
+Route::get('/beneficiaries', [ReportController::class, 'beneficiaries']);
+Route::get('/volunteers', [ReportController::class, 'volunteers']);
+});
 // ==================== CHAT ROUTES ====================
 Route::prefix('chat')->middleware('auth:sanctum')->group(function () {
     Route::get('/conversations', [ChatController::class, 'conversations']); //!ارجاع المحادثات الموجودة
@@ -251,7 +257,6 @@ Route::prefix('chat')->middleware('auth:sanctum')->group(function () {
     Route::get('/conversations/{id}/messages', [ChatController::class, 'messages']); //!ارجاع الرسائل في المحادثة
     Route::post('/conversations/{id}/messages', [ChatController::class, 'sendMessage']); //!ارسال رسالة في المحادثة
 });
-
 
 
 // ==================== BENEFICIARIES ROUTES (Admin) ====================

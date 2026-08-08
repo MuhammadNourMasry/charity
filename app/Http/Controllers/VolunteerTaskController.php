@@ -363,7 +363,7 @@ $volunteer = $user->volunterProfile;
     public function startTask($id, Request $request)
     {
         $user = $request->user();
-$volunteer = $user->volunterProfile;
+        $volunteer = $user->volunterProfile;
         if (!$volunteer) {
             return response()->json([
                 'code' => '404',
@@ -548,7 +548,6 @@ $volunteer = $user->volunterProfile;
                     'status' => 'completed',
                     'completed_at' => now(),
                 ]);
-
                 // ✅ إشعار للمستفيد صاحب طلب المساعدة
                 Notification::sendPushOnly(
                     $task->aidApplication->user_id,
@@ -606,7 +605,6 @@ $volunteer = $user->volunterProfile;
             ], 500);
         }
     }
-
     /**
      * الحصول على المهمة الحالية للمتطوع
      *

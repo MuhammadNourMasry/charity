@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class DonorProfile extends Model
 {
     protected $table = 'donor_profiles';
-    
+
     protected $fillable = [
-         'name',
+        'name',
         'user_id',
         'donor_type',
         'is_anonymous',
@@ -18,7 +18,6 @@ class DonorProfile extends Model
         'loyalty_tier',
         'bio'
     ];
-
     protected $casts = [
         'is_anonymous' => 'boolean',
         'total_donated' => 'integer',
@@ -48,7 +47,7 @@ class DonorProfile extends Model
             $this->loyalty_tier = null;
         }
         $this->save();
-        
+
         return $this;
     }
 

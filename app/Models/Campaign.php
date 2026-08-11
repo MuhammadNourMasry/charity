@@ -120,27 +120,27 @@ class Campaign extends Model
     public function getAchievedAmountAttribute()
     {
         return $this->attributes['achieved_amount_sum']
-            ?? $this->donations()->where('status', 'completed')->sum('amount');
+            ?? $this->donations()->where('status', 'مكتمل')->sum('amount');
     }
 
 
     public function getDonorsCountAttribute()
     {
         return $this->attributes['donors_count_calc']
-            ?? $this->donations()->where('status', 'completed')->distinct('donor_id')->count('donor_id');
+            ?? $this->donations()->where('status', 'مكتمل')->distinct('donor_id')->count('donor_id');
     }
 
 
     public function updateCollectedAmount()
     {
         $this->collected_amount = $this->donations()
-            ->where('status', 'completed')
+            ->where('status', 'مكتمل')
             ->sum('amount');
         $this->save();
 
 
         if ($this->collected_amount >= $this->goal_amount && $this->status === 'نشطة') {
-            $this->status = 'completed';
+            $this->status = 'مكتمل';
             $this->save();
         }
 

@@ -153,7 +153,6 @@ class DonationCartController extends Controller
                 'message' => 'السلة فارغة'
             ], 400);
         }
-
         $total = $cartItems->sum('amount');
 
         // Create donations for each cart item

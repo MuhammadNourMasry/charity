@@ -24,28 +24,28 @@ class UserController extends Controller
         $this->rateLimiter = $rateLimiter;
     }
     public function register(RegisterRequest $request)
-{
-    $data = $request->validated();
+    {
+        $data = $request->validated();
 
-    $user = User::create([
-        'name' => trim($data['name']),
-        'email' => $data['email'],
-        'password' => Hash::make($data['password']),
-        'role' => null,
-        'profile_completed' => false,
-    ]);
+        $user = User::create([
+            'name' => trim($data['name']),
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role' => null,
+            'profile_completed' => false,
+        ]);
 
-    $this->otpService->sendOtp($user->email, 'verification');
+        $this->otpService->sendOtp($user->email, 'verification');
 
-    $token = $user->createToken('profile_token')->plainTextToken;
-    return response()->json([
-        'code' => 201,
-        'status' => 'success',
-        'message' => 'Account created. Please verify your email.',
-        'token' => $token,
-        'user' => $user
-    ], 201);
-}
+        $token = $user->createToken('profile_token')->plainTextToken;
+        return response()->json([
+            'code' => 201,
+            'status' => 'success',
+            'message' => 'Account created. Please verify your email.',
+            'token' => $token,
+            'user' => $user
+        ], 201);
+    }
 /*public function register(RegisterRequest $request)
 {
     $key = 'register.' . $request->ip();

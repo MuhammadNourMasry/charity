@@ -32,8 +32,7 @@ return new class extends Migration
             $table->timestamp('end_time')->nullable();
             $table->timestamp('expected_end_time')->nullable();
 
-            $table->enum('status', ['جديدة', 'قيد التنفيذ', 'مكتملة', 'ملغية', 'معلقة'])
-                ->default('جديدة');
+            $table->enum('status', ['جديدة', 'قيد التنفيذ', 'مكتملة', 'ملغية', 'معلقة'])->default('جديدة');
 
             $table->integer('progress_percentage')->default(0);
             $table->integer('points_earned')->default(0);

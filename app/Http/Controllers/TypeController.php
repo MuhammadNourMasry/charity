@@ -18,7 +18,6 @@ class TypeController extends Controller
             'message'=>'retrive data successfully',
             'data'    => $TypeNeeded
         ]);
-
     }
 
     /**

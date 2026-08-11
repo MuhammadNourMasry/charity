@@ -66,6 +66,15 @@ class CampaignSeeder extends Seeder
                 'is_emergency' => false,
                 'status' => 'نشطة',
             ],
+              [
+                'title' => 'حملة افطار صائم',
+                'description' => 'تأمين إفطار أكثر من  100 صائم .',
+                'goal_amount' => 35000,
+                'collected_amount'=>35000,
+                'category' => 'أيتام',
+                'is_emergency' => false,
+                'status' => 'نشطة',
+            ],
         ];
 
         $this->command->info("📢 Creating " . count($campaigns) . " campaigns...");

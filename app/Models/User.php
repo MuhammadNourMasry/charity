@@ -24,13 +24,11 @@ class User extends Authenticatable
         'two_fa_secret',
         'email_verified_at'
     ];
-
     protected $hidden = [
         'password',
         'remember_token',
         'two_fa_secret'
     ];
-
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_verified' => 'boolean',

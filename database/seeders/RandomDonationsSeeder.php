@@ -43,7 +43,7 @@ class RandomDonationsSeeder extends Seeder
         $progressBar = $this->command->getOutput()->createProgressBar($numberOfDonations);
         $progressBar->start();
 
-        $donationStatuses = ['pending', 'completed', 'failed', 'refunded'];
+        $donationStatuses = ['قيد الانتظار', 'مكتمل', 'فشل', 'مسترد'];
         $paymentMethods = ['stripe', 'paypal', 'tap', 'moyasar', 'mada', 'apple_pay', 'google_pay'];
         $currencies = ['USD', 'EUR', 'SAR', 'AED', 'GBP'];
         $gateways = ['local', 'payerurl'];
@@ -79,7 +79,7 @@ class RandomDonationsSeeder extends Seeder
                     'payment_method' => $paymentMethod,
                     'payment_gateway' => $paymentGateway,
                     'status' => $status,
-                    'gateway_status' => $status === 'completed' ? 'completed' : null,
+                    'gateway_status' => $status === 'مكتمل' ? 'مكتمل' : null,
                     'is_anonymous' => $isAnonymous,
                     'is_recurring' => $isRecurring,
                     'is_gift' => $isGift,
@@ -103,14 +103,14 @@ class RandomDonationsSeeder extends Seeder
                 }
 
 
-                if ($status === 'completed') {
+                if ($status === 'مكتمل') {
                     PaymentTransaction::create([
                         'donation_id' => $donation->id,
                         'gateway_ref' => 'TXN_' . Str::random(16),
                         'amount' => $amount,
                         'currency' => $currency,
                         'status' => 'success',
-                        'gateway_response' => json_encode(['status' => 'completed', 'message' => 'Payment successful']),
+                        'gateway_response' => json_encode(['status' => 'مكتمل', 'message' => 'Payment successful']),
                         'processed_at' => $donatedAt,
                         'created_at' => $donatedAt,
                         'updated_at' => $donatedAt,
@@ -164,8 +164,8 @@ class RandomDonationsSeeder extends Seeder
     private function showStatistics(): void
     {
         $totalDonations = Donation::count();
-        $totalCompleted = Donation::where('status', 'completed')->count();
-        $totalAmount = Donation::where('status', 'completed')->sum('amount');
+        $totalCompleted = Donation::where('status', 'مكتمل')->count();
+        $totalAmount = Donation::where('status', 'مكتمل')->sum('amount');
         $totalCampaigns = Campaign::count();
         $totalDonors = User::where('role', 'Donor')->count();
 
@@ -180,10 +180,10 @@ class RandomDonationsSeeder extends Seeder
 
 
         $topCampaigns = Campaign::withCount(['donations as total_donations' => function($q) {
-                $q->where('status', 'completed');
+                $q->where('status', 'مكتمل');
             }])
             ->withSum(['donations as total_amount' => function($q) {
-                $q->where('status', 'completed');
+                $q->where('status', 'مكتمل');
             }], 'amount')
             ->orderBy('total_amount', 'desc')
             ->limit(5)

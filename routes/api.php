@@ -296,20 +296,18 @@ Route::prefix('aid-applications')->group(function () {
 
 
 // ==================== EXPORT DONATIONS ====================
-Route::get('/users/exportDonations', [DorationController::class, 'export']);
+Route::get('/users/exportDorations', [DorationController::class, 'export']);
 
 // ==================== DOWNLOAD DONATION FILE ====================
-Route::get('/download-donation', function () {
+Route::get('/download-doration', function () {
     $disk = Storage::disk('public');
     $filename = 'Donation.xlsx';
-
     if ($disk->exists($filename)) {
         $path = $disk->path($filename);
         return response()->download($path, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         ]);
     }
-
     return response()->json(['message' => 'الملف غير موجود في السيرفر'], 404);
 });
 

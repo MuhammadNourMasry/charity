@@ -140,7 +140,7 @@ class Campaign extends Model
 
 
         if ($this->collected_amount >= $this->goal_amount && $this->status === 'نشطة') {
-            $this->status = 'مكتمل';
+            $this->status = 'مكتملة';
             $this->save();
         }
 

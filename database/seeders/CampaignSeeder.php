@@ -70,7 +70,7 @@ class CampaignSeeder extends Seeder
                 'title' => 'حملة افطار صائم',
                 'description' => 'تأمين إفطار أكثر من  100 صائم .',
                 'goal_amount' => 35000,
-                'collected_amount'=>35000,
+                'collected_amount'=>30000,
                 'category' => 'أيتام',
                 'is_emergency' => false,
                 'status' => 'نشطة',

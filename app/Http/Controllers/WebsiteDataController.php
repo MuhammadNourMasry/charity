@@ -169,8 +169,6 @@ public function store(Request $request): JsonResponse
             'payment_method' => 'required|in:stripe,paypal,tap,moyasar,mada,apple_pay,google_pay,crypto,payerurl',
             'is_anonymous'   => 'nullable|boolean',
         ]);
-
-        // 2. جلب الحملة والتحقق من حالتها
         $campaign = Campaign::findOrFail($validated['campaign_id']);
 
         // التحقق مما إذا كانت الحملة نشطة (تدعم التسمية بالإنجليزية "active" أو بالعربية "نشطة")
@@ -218,10 +216,13 @@ public function store(Request $request): JsonResponse
                 'is_anonymous'   => $validated['is_anonymous'] ?? false,
                 'donated_at'     => now(),
             ]);
-
             $donorProfile->addDonation($validated['amount']);
-
             $campaign->updateCollectedAmount();
+             $campaign->refresh();
+        if ($campaign->target_amount && $campaign->collected_amount >= $campaign->target_amount) {
+            $campaign->update(['status' => 'مكتملة']);
+        }
+
 
             DB::commit();
            Mail::to($user->email)->send(new DonationReceivedMail($donation, $campaign, $user->name));

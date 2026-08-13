@@ -112,21 +112,22 @@ public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'name'      => 'required|string|max:255',
-            'email'     => 'required|email|unique:users,email',
+            'email'     => 'required|email|max:255',
             'city_id'   => 'required|exists:cities,id',
             'domain_id' => 'required|exists:domains,id',
-            'phone'     => 'nullable|string|unique:profiles,phone',
+            'phone'     => 'nullable|string',
         ]);
-
         DB::beginTransaction();
         try {
-            $user =User::firstOrCreate([
-                'name'        => $validated['name'],
-                'email'       => $validated['email'],
-                'password'    => Hash::make(Str::random(12)),
-                'role'        => 'volunteer',
-                'is_active'   => false,
-            ]);
+            $user = User::firstOrCreate(
+                ['email' => $validated['email']],   // شرط البحث: الإيميل بس
+                [
+                    'name'      => $validated['name'],
+                    'password'  => Hash::make(Str::random(12)),
+                    'role'      => 'volunteer',
+                    'is_active' => false,
+                ]
+            );
             Profile::firstOrCreate([
                 'user_id' => $user->id,
                 'city_id' => $validated['city_id'],

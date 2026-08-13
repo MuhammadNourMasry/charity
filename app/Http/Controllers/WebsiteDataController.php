@@ -92,7 +92,7 @@ public function index(Request $request): JsonResponse
     $limit = $request->get('limit', 5);
 
     $topVolunteers = VolunterProfile::with([
-            'user:id,name',                             // جلب اسم المستخدم
+            'user:id,name',
             'user.profile:id,user_id,personal_photo'
         ])
         ->select([
@@ -120,20 +120,20 @@ public function store(Request $request): JsonResponse
 
         DB::beginTransaction();
         try {
-            $user = User::create([
+            $user =User::firstOrCreate([
                 'name'        => $validated['name'],
                 'email'       => $validated['email'],
                 'password'    => Hash::make(Str::random(12)),
                 'role'        => 'volunteer',
                 'is_active'   => false,
             ]);
-            Profile::create([
+            Profile::firstOrCreate([
                 'user_id' => $user->id,
                 'city_id' => $validated['city_id'],
                 'phone'   => $validated['phone'] ?? '09' . rand(10000000, 99999999),
                 'gender'  => 'ذكر',
             ]);
-            $volunteerProfile = VolunterProfile::create([
+            $volunteerProfile = VolunterProfile::firstOrCreate([
                 'user_id'         => $user->id,
                 'Favorite_period' => 'صباحاً',
                 'status'          => 'متاح',
@@ -160,7 +160,6 @@ public function store(Request $request): JsonResponse
     }
     public function donate(Request $request): JsonResponse
     {
-        // 1. التحقق من صحة البيانات المدخلة
         $validated = $request->validate([
             'campaign_id'    => 'required|exists:campaigns,id',
             'name'           => 'required|string|max:255',
@@ -170,8 +169,6 @@ public function store(Request $request): JsonResponse
             'is_anonymous'   => 'nullable|boolean',
         ]);
         $campaign = Campaign::findOrFail($validated['campaign_id']);
-
-        // التحقق مما إذا كانت الحملة نشطة (تدعم التسمية بالإنجليزية "active" أو بالعربية "نشطة")
         if (!in_array($campaign->status, ['active', 'نشطة'])) {
             $statusMessages = [
                 'مكتمل'     => 'هذه الحملة مكتملة بالكامل ولم تعد تستقبل تبرعات.',
@@ -257,7 +254,6 @@ public function store(Request $request): JsonResponse
             'description' => 'nullable|string',
             'is_urgent'   => 'nullable|boolean',
         ]);
-
         DB::beginTransaction();
         try {
             $typeModel = Type::findOrFail($validated['type_id']);
@@ -289,7 +285,6 @@ public function store(Request $request): JsonResponse
                 'status'                 => 'قيد المراجعة',
                 'application_date'       => now()->toDateString(),
             ]);
-
             DB::commit();
 
             Mail::to($user->email)->send(new AidApplicationReceivedMail($application, $user->name));

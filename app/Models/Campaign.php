@@ -133,17 +133,12 @@ class Campaign extends Model
 
     public function updateCollectedAmount()
     {
-        $this->collected_amount = $this->donations()
-            ->where('status', 'مكتمل')
-            ->sum('amount');
+        $this->collected_amount = $this->donations()->where('status', 'مكتمل')->sum('amount');
         $this->save();
-
-
         if ($this->collected_amount >= $this->goal_amount && $this->status === 'نشطة') {
             $this->status = 'مكتملة';
             $this->save();
         }
-
         return $this;
     }
 }

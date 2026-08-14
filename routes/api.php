@@ -1,6 +1,6 @@
 <?php
 
-
+use App\Http\Controllers\SponsorshipManagementController;
 use App\Http\Controllers\AidApplicationController;
 use App\Http\Controllers\BeneficiaryProfileController;
 use App\Http\Controllers\CampaignController;
@@ -240,6 +240,14 @@ Route::controller(CampaignController::class)->group(function () {
     Route::put('/campaigns/update/{id}', 'update');
     Route::delete('/campaigns/delete/{id}', 'destroy');
 });
+});
+Route::prefix('admin/sponsorships')->group(function () {
+    Route::get('dashboard', [SponsorshipManagementController::class, 'dashboard']);
+    Route::post('{id}/approve', [SponsorshipManagementController::class, 'approve']);
+    Route::post('{id}/reject', [SponsorshipManagementController::class, 'reject']);
+    Route::post('{id}/suspend', [SponsorshipManagementController::class, 'suspend']);
+    Route::post('{id}/resume', [SponsorshipManagementController::class, 'resume']);
+    Route::patch('{id}/notes', [SponsorshipManagementController::class, 'updateNotes']);
 });
 Route::prefix('reports')->group(function () {
 Route::get('/general', [ReportController::class, 'general']);

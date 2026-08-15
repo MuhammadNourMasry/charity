@@ -167,7 +167,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==================== VOLUNTEER ROUTES ====================
     Route::prefix('volunteer')->group(function () {
         Route::post('/complete-profile', [ControllersVolunterProfileController::class, 'completeProfile']); //!اكمال الملف الشخصي
-       // Route::get('/profile', [ControllersVolunterProfileController::class, 'getProfile']);
+     Route::get('/profile', [ControllersVolunterProfileController::class, 'getVolunteers']); //!جلب الملف الشخصي
         Route::get('/statistics', [VolunteerTaskController::class, 'statistics']); //!جلب إحصائيات المتطوع
 
         Route::prefix('tasks')->group(function () {

@@ -1,5 +1,4 @@
 <?php
-// app/Providers/FirebaseNotificationServiceProvider.php
 
 namespace App\Providers;
 
@@ -12,7 +11,7 @@ class FirebaseNotificationServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Messaging::class, function ($app) {
-           $credentials = config('firebase.projects.app.credentials'); 
+            $credentials = config('firebase.projects.app.credentials'); 
             $projectId   = config('firebase.projects.app.project_id');  
 
             if (!$credentials || !file_exists($credentials)) {

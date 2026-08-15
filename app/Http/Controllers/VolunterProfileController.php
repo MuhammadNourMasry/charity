@@ -143,7 +143,7 @@ class VolunterProfileController extends Controller
             ], 500);
         }
     }
-public function getProfile (Request $request)
+public function getVolunteers(Request $request)
 {
     $volunteers = User::with([
         'profile.city',

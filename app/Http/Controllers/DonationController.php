@@ -758,28 +758,22 @@ if (!$donation) {
      * GET /api/donor/donations/{id}/pdf
      */
     public function downloadReceiptPdf($id, Request $request)
-    {$user = $request->user();
-        $donorProfile = DonorProfile::where('user_id', $user->id)->firstOrFail();
-
-        $donation = Donation::with(['campaign', 'donor.user'])
-            ->where('donor_id', $donorProfile->id)
-            ->where('id', $id)
-            ->firstOrFail();
-
-        $data = [
-        'receipt_number'   => 'DON-' . str_pad($donation->id, 8, '0', STR_PAD_LEFT),
-        'campaign_title'   => $donation->campaign->title,
-        'campaign_category'=> $donation->campaign->category ?? 'عامة',
-        'amount'           => number_format($donation->amount, 2),
-        'currency'         => $donation->currency,
-        'payment_method'   => $this->getPaymentMethodName($donation->payment_method),
-        'status'           => $this->getStatusName($donation->status),
-        'date'             => $donation->donated_at->format('Y-m-d H:i:s'),
-        'donor_name'       => $donation->is_anonymous ? 'متبرع مجهول' : $donation->user->name,
-        'is_anonymous'     => $donation->is_anonymous,
-        'campaign_id'      => $donation->campaign_id,
-        'donation_id'      => $donation->id,
-        ];
+{
+    $donation = Donation::with(['campaign', 'donor.user'])->findOrFail($id);
+    $data = [
+        'receipt_number'    => 'DON-' . str_pad($donation->id, 8, '0', STR_PAD_LEFT),
+        'campaign_title'    => $donation->campaign->title,
+        'campaign_category' => $donation->campaign->category ?? 'عامة',
+        'amount'            => number_format($donation->amount, 2),
+        'currency'          => $donation->currency,
+        'payment_method'    => $this->getPaymentMethodName($donation->payment_method),
+        'status'            => $this->getStatusName($donation->status),
+        'date'              => $donation->donated_at->format('Y-m-d H:i:s'),
+        'donor_name'        => $donation->is_anonymous ? 'متبرع مجهول' : $donation->donor->user->name,
+        'is_anonymous'      => $donation->is_anonymous,
+        'campaign_id'       => $donation->campaign_id,
+        'donation_id'       => $donation->id,
+    ];
     $html = view('pdf.donation_receipt', $data)->render();
     $mpdf = new Mpdf([
         'mode'        => 'utf-8',
@@ -788,9 +782,9 @@ if (!$donation) {
         'direction'   => 'rtl',
     ]);
     $mpdf->WriteHTML($html);
-        // $pdf = Pdf::loadView('pdf.donation_receipt', $data)->setOption('is_unicode', true)->setOption('enable_html5_parser', true);
+
     return response($mpdf->Output('receipt.pdf', 'S'))->header('Content-Type', 'application/pdf');
-    }
+}
 
     /**
      * ترجمة طريقة الدفع

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CityController;
+use App\Http\Controllers\DonationController;
 use App\Http\Controllers\TypeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Website\HomeController;
@@ -27,3 +28,4 @@ Route::get('/cities', [CityController::class, 'index']);
 Route::post('/donations', [WebsiteDataController::class, 'donate']);
 Route::post('/aid-applications', [WebsiteDataController::class, 'apply']);
 
+ Route::get('/donations/{id}/pdf', [DonationController::class, 'downloadReceiptPdf']);

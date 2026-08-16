@@ -311,4 +311,5 @@ public function store(Request $request): JsonResponse
             ], 500);
         }
     }
+    
 }

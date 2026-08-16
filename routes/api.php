@@ -294,7 +294,9 @@ Route::post('/volunteer-tasks/{task}/assign', [VolunteerTaskController::class, '
 Route::get('volunteer-tasks/pending-evaluation', [VolunteerTaskController::class, 'pendingEvaluation']);
 Route::post('volunteer-tasks/{id}/evaluate', [VolunteerTaskController::class, 'evaluate']);
 
-
+Route::post('/admin/volunteer-tasks/{id}/review-start', [VolunteerTaskController::class, 'reviewStartRequest']);
+Route::post('/admin/volunteer-tasks/{id}/review-end', [VolunteerTaskController::class, 'reviewEndRequest']);
+Route::get('/admin/volunteer-tasks/pending-approvals', [VolunteerTaskController::class, 'pendingApprovals']);
 
 Route::prefix('aid-applications')->group(function () {
     Route::get('/', [AidApplicationController::class, 'getAll']);

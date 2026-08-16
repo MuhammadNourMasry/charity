@@ -44,6 +44,7 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
+
             $table->index(['volunteer_id', 'status']);
             $table->index('beneficiary_id');
             $table->index('aid_application_id');
@@ -114,4 +115,5 @@ return new class extends Migration
         Schema::dropIfExists('volunteer_check_ins');
         Schema::dropIfExists('volunteer_tasks');
     }
+
 };

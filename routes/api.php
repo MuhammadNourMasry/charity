@@ -230,7 +230,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/remove-token', [NotificationController::class, 'removeToken']);
         Route::post('/test-push', [NotificationController::class, 'testPush']);
     });
-
     // ==================== CAMPAIGN ROUTES ====================
     //! للويب
 Route::controller(CampaignController::class)->group(function () {
@@ -266,7 +265,12 @@ Route::prefix('chat')->middleware('auth:sanctum')->group(function () {
     Route::post('/conversations/{id}/messages', [ChatController::class, 'sendMessage']); //!ارسال رسالة في المحادثة
 });
 
-
+Route::prefix('admin')->group(function () {
+Route::get('/notifications', [NotificationController::class, 'getAll']);
+Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+Route::delete('/notifications/{id}', [NotificationController::class, 'delete']);
+});
 // ==================== BENEFICIARIES ROUTES (Admin) ====================
 Route::get('/beneficiaries', [BeneficiaryProfileController::class, 'index']);
 Route::get('/beneficiaries/{id}', [BeneficiaryProfileController::class, 'show']);
@@ -294,6 +298,9 @@ Route::post('/volunteer-tasks/{task}/assign', [VolunteerTaskController::class, '
 Route::get('volunteer-tasks/pending-evaluation', [VolunteerTaskController::class, 'pendingEvaluation']);
 Route::post('volunteer-tasks/{id}/evaluate', [VolunteerTaskController::class, 'evaluate']);
 
+
+Route::get('/admin/volunteer-tasks', [VolunteerTaskController::class, 'allTasks']);
+Route::get('/admin/volunteers/{volunteerId}/tasks', [VolunteerTaskController::class, 'tasksByVolunteer']);
 Route::post('/admin/volunteer-tasks/{id}/review-start', [VolunteerTaskController::class, 'reviewStartRequest']);
 Route::post('/admin/volunteer-tasks/{id}/review-end', [VolunteerTaskController::class, 'reviewEndRequest']);
 Route::get('/admin/volunteer-tasks/pending-approvals', [VolunteerTaskController::class, 'pendingApprovals']);

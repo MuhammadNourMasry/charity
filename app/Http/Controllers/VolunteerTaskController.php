@@ -842,7 +842,7 @@ $volunteer = $user->volunterProfile;
             if ($volunteer && $volunteer->user) {
                 Notification::sendPushOnly(
                     $volunteer->user->id,
-                    '✅ تم قبول طلبك',
+                    'تم قبول طلبك',
                     "تم قبول طلبك لبدء المهمة '{$task->title}'",
                     'task_start_approved',
                     ['task_id' => $task->id]
@@ -851,8 +851,6 @@ $volunteer = $user->volunterProfile;
 
             return $result;
         }
-
-        // ❌ رفض
         $task->update([
             'status' => 'جديدة',
             'volunteer_id' => null,
@@ -946,8 +944,6 @@ $volunteer = $user->volunterProfile;
                 'data' => ['task' => $task->fresh()],
             ], 200);
         }
-
-        // ✅ قبول: نفّذ منطق الإنهاء الفعلي
         try {
             DB::beginTransaction();
 
@@ -1007,7 +1003,7 @@ $volunteer = $user->volunterProfile;
             if ($task->beneficiary_id) {
                 Notification::sendPushOnly(
                     $task->beneficiary_id,
-                    '✅ تم إكمال المهمة',
+                    'تم إكمال المهمة',
                     "تم إكمال المهمة '{$task->title}' بواسطة المتطوع {$volunteer->user->name}",
                     'task_completed',
                     ['task_id' => $task->id]
@@ -1548,4 +1544,138 @@ public function assign(Request $request, VolunteerTask $task)
         'data' => $task->fresh()->load('volunteer.user', 'type'),
     ]);
 }
+public function tasksByVolunteer($volunteerId, Request $request)
+    {
+        $volunteer = VolunterProfile::with('user')->find($volunteerId);
+
+        if (!$volunteer) {
+            return response()->json([
+                'code' => '404',
+                'success' => false,
+                'message' => 'لم يتم العثور على المتطوع',
+            ], 404);
+        }
+
+        $query = VolunteerTask::where('volunteer_id', $volunteer->id)
+            ->with(['supervisor', 'beneficiary', 'aidApplication', 'visit', 'campaign', 'type', 'evaluation']);
+
+        // ✅ تصفية اختيارية حسب الحالة
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $tasks = $query->get();
+
+        $tasks->transform(function ($task) {
+            $task->status_text = $task->status_text;
+            $task->elapsed_time = $task->formatted_elapsed_time;
+            $task->is_in_progress = $task->is_in_progress;
+            $task->is_completed = $task->is_completed;
+            $task->is_new = $task->is_new;
+            $task->source_type = $task->source_type;
+            $task->source_name = $task->source_name;
+            $task->beneficiary_name = $task->beneficiary_name;
+            return $task;
+        });
+
+        $stats = [
+            'total' => $tasks->count(),
+            'new' => $tasks->where('status', 'جديدة')->count(),
+            'in_progress' => $tasks->where('status', 'قيد التنفيذ')->count(),
+            'completed' => $tasks->where('status', 'مكتملة')->count(),
+            'cancelled' => $tasks->where('status', 'ملغية')->count(),
+            'pending' => $tasks->where('status', 'معلقة')->count(),
+        ];
+
+        return response()->json([
+            'code' => '200',
+            'success' => true,
+            'message' => 'تم جلب مهام المتطوع بنجاح',
+            'data' => [
+                'volunteer' => [
+                    'id' => $volunteer->id,
+                    'name' => $volunteer->user?->name,
+                    'status' => $volunteer->status,
+                    'total_hours' => $volunteer->total_hours,
+                    'points' => $volunteer->points,
+                ],
+                'tasks' => $tasks,
+                'stats' => $stats,
+            ],
+        ], 200);
+    }
+     public function allTasks(Request $request)
+    {
+        $query = VolunteerTask::with([
+            'volunteer.user',
+            'supervisor',
+            'beneficiary',
+            'aidApplication',
+            'visit',
+            'campaign',
+            'type',
+            'evaluation',
+        ]);
+        // ✅ تصفية حسب المصدر
+        if ($request->filled('source')) {
+            switch ($request->source) {
+                case 'beneficiary':
+                    $query->whereNotNull('beneficiary_id');
+                    break;
+                case 'aid':
+                    $query->whereNotNull('aid_application_id');
+                    break;
+                case 'visit':
+                    $query->whereNotNull('visit_id');
+                    break;
+                case 'campaign':
+                    $query->whereNotNull('campaign_id');
+                    break;
+            }
+        }
+
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $perPage = $request->get('per_page', 20);
+        $tasks = $query->paginate($perPage);
+
+        $tasks->getCollection()->transform(function ($task) {
+            $task->status_text = $task->status_text;
+            $task->elapsed_time = $task->formatted_elapsed_time;
+            $task->is_in_progress = $task->is_in_progress;
+            $task->is_completed = $task->is_completed;
+            $task->is_new = $task->is_new;
+            $task->source_type = $task->source_type;
+            $task->source_name = $task->source_name;
+            $task->beneficiary_name = $task->beneficiary_name;
+            $task->volunteer_name = $task->volunteer?->user?->name;
+            return $task;
+        });
+        $stats = [
+            'total' => VolunteerTask::count(),
+            'new' => VolunteerTask::where('status', 'جديدة')->count(),
+            'in_progress' => VolunteerTask::where('status', 'قيد التنفيذ')->count(),
+            'completed' => VolunteerTask::where('status', 'مكتملة')->count(),
+            'cancelled' => VolunteerTask::where('status', 'ملغية')->count(),
+            'pending' => VolunteerTask::where('status', 'معلقة')->count(),
+            'unassigned' => VolunteerTask::whereNull('volunteer_id')->count(),
+            'awaiting_approval' => VolunteerTask::whereNotNull('awaiting_approval')->count(),
+        ];
+        return response()->json([
+            'code' => '200',
+            'success' => true,
+            'message' => 'تم جلب جميع المهام بنجاح',
+            'data' => [
+                'tasks' => $tasks,
+                'stats' => $stats,
+            ],
+        ], 200);
+    }
 }
+
